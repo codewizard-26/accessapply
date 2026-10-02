@@ -524,16 +524,21 @@ function findLabelledValue(
   return undefined;
 }
 
-function detectWorkMode(scope: string): JobInfo["workMode"] {
+export function detectWorkMode(scope: string): JobInfo["workMode"] {
+  // Priority order matters: an explicit "hybrid" wins over incidental mentions
+  // of the word "remote" (e.g. "hybrid - 2 days remote, 3 days onsite").
+  if (/\bhybrid\b/i.test(scope)) return "hybrid";
   if (
-    /\bfully?\s+remote\b|\bremote[\s-]?(?:first|position|work)\b|\b100%\s*remote\b/i.test(
+    /\bfully?\s+remote\b|\bremote[\s-]?(?:first|position|role|work|job)\b|\b100%\s*remote\b|\bwork\s+from\s+home\b|\bwfh\b|\btelecommut\w*\b/i.test(
       scope,
     )
   )
     return "remote";
-  if (/\bhybrid\b/i.test(scope)) return "hybrid";
   if (/\bon[\s-]?site\b|\bin[\s-]?office\b|\bin[\s-]?person\b/i.test(scope))
     return "onsite";
+  // Weaker signal: a bare "remote" as often written in a Location line, e.g.
+  // "Location: Remote (US) &middot; Employment type: Full-time".
+  if (/\bremote\b/i.test(scope)) return "remote";
   return "unknown";
 }
 

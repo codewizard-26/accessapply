@@ -37,6 +37,7 @@ const {
   sanitizePageForWire,
   mockNextAction,
   MOCK_SCENARIOS,
+  detectWorkMode,
 } = mod;
 
 const samplePage = {
@@ -233,6 +234,24 @@ test("every advertised mock scenario is handled", () => {
       { sessionId: "s", iteration: 1, page: samplePage },
     );
     assert.ok(res.ok || res.error, `scenario ${scenario} returned something`);
+  }
+});
+
+test("detectWorkMode classifies the common phrasings", () => {
+  const cases = [
+    ["Location: Remote (US) · Employment type: Full-time", "remote"],
+    ["Fully remote team", "remote"],
+    ["Remote-first company", "remote"],
+    ["100% remote", "remote"],
+    ["Work from home", "remote"],
+    ["Hybrid - 2 days remote, 3 days onsite", "hybrid"],
+    ["This is an on-site role in Berlin", "onsite"],
+    ["In-office four days a week", "onsite"],
+    ["In person interviews required", "onsite"],
+    ["No work arrangement specified", "unknown"],
+  ];
+  for (const [text, expected] of cases) {
+    assert.equal(detectWorkMode(text), expected, text);
   }
 });
 

@@ -14,6 +14,7 @@ export {
   sanitizePageForWire,
   MOCK_SCENARIOS,
 } from "./backend.js";
+export { detectWorkMode } from "./scanner.js";
 export type {
   AgentAction,
   ExtensionSettings,
