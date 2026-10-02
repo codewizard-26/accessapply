@@ -5,6 +5,7 @@ import type {
   UserProfile,
 } from "../../../shared/types/index.js";
 import { generateAgentAction } from "../services/llm.service.js";
+import { getStoredUserProfile } from "../services/profile.service.js";
 
 /**
  * Constructs a structured prompt for Gemini containing the user's command,
@@ -157,7 +158,20 @@ export async function getNextAction(
   pageContext: PageContext,
   userProfile?: UserProfile
 ): Promise<AgentAction> {
-  const prompt = buildAgentPrompt(command, pageContext, userProfile);
+  // If userProfile was not passed in the request, retrieve it from the database
+  let effectiveProfile = userProfile;
+  if (!effectiveProfile) {
+    try {
+      const stored = await getStoredUserProfile();
+      if (stored) {
+        effectiveProfile = stored;
+      }
+    } catch {
+      // If DATABASE_URL is not set or DB is unavailable, continue gracefully
+    }
+  }
+
+  const prompt = buildAgentPrompt(command, pageContext, effectiveProfile);
   const action = await generateAgentAction(prompt);
 
   // Semantic validation: Ensure referenced target exists in page elements
