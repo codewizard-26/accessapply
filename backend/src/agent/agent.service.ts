@@ -1,4 +1,9 @@
-import type { AgentAction, PageContext, UserProfile } from "../../../shared/types/index.js";
+import type {
+  AgentAction,
+  PageContext,
+  PageElement,
+  UserProfile,
+} from "../../../shared/types/index.js";
 import { generateAgentAction } from "../services/llm.service.js";
 
 /**
@@ -63,13 +68,89 @@ ${profileSection}
 }
 
 /**
+ * Checks whether a given target identifier matches any element in the page context.
+ * Performs exact matching first against element id, text, label, or placeholder.
+ */
+function isTargetInPageElements(target: string, elements: PageElement[]): boolean {
+  if (!target || elements.length === 0) {
+    return false;
+  }
+
+  // 1. Exact match first
+  for (const el of elements) {
+    if (
+      el.id === target ||
+      el.text === target ||
+      el.label === target ||
+      el.placeholder === target
+    ) {
+      return true;
+    }
+  }
+
+  // 2. Safe trimmed match fallback
+  const trimmedTarget = target.trim();
+  for (const el of elements) {
+    if (
+      (el.id && el.id.trim() === trimmedTarget) ||
+      (el.text && el.text.trim() === trimmedTarget) ||
+      (el.label && el.label.trim() === trimmedTarget) ||
+      (el.placeholder && el.placeholder.trim() === trimmedTarget)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Semantic validation layer:
+ * Verifies that actions referencing a page element (click, type, read with target)
+ * actually point to a real element present in pageContext.elements.
+ */
+function validateActionAgainstPageContext(
+  action: AgentAction,
+  pageContext: PageContext
+): void {
+  const elements = pageContext.elements || [];
+
+  switch (action.action) {
+    case "click":
+    case "type": {
+      if (!isTargetInPageElements(action.target, elements)) {
+        throw new Error(
+          `Invalid agent target: "${action.target}" does not exist in the current page context.`
+        );
+      }
+      break;
+    }
+    case "read": {
+      if (action.target && !isTargetInPageElements(action.target, elements)) {
+        throw new Error(
+          `Invalid agent target: "${action.target}" does not exist in the current page context.`
+        );
+      }
+      break;
+    }
+    case "navigate":
+    case "scroll":
+    case "ask_user":
+    case "done":
+      // These actions do not reference page elements; skip target validation.
+      break;
+  }
+}
+
+/**
  * Decides the next structured action for the agent to execute based on
- * the user command, page context, and user profile by consulting Gemini.
+ * the user command, page context, and user profile by consulting Gemini,
+ * and semantically validates that any referenced targets exist on the page.
  *
  * @param command The high-level instruction or intent from the user.
  * @param pageContext Current state of the webpage, including URL, text, and DOM elements.
  * @param userProfile Optional profile information for the user (skills, contact, preferences).
- * @returns A Promise resolving to a structured AgentAction.
+ * @returns A Promise resolving to a validated structured AgentAction.
  */
 export async function getNextAction(
   command: string,
@@ -77,5 +158,10 @@ export async function getNextAction(
   userProfile?: UserProfile
 ): Promise<AgentAction> {
   const prompt = buildAgentPrompt(command, pageContext, userProfile);
-  return generateAgentAction(prompt);
+  const action = await generateAgentAction(prompt);
+
+  // Semantic validation: Ensure referenced target exists in page elements
+  validateActionAgainstPageContext(action, pageContext);
+
+  return action;
 }

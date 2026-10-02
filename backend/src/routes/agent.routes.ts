@@ -48,9 +48,11 @@ agentRouter.post("/act", async (req: Request<unknown, unknown, AgentRequestBody>
       }`,
     });
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to determine next agent action";
     res.status(500).json({
       success: false,
-      error: "Failed to determine next agent action",
+      error: errorMessage,
     });
   }
 });
