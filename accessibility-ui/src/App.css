@@ -6,7 +6,7 @@ body { margin: 0; min-width: 320px; }
 button, textarea { font: inherit; }
 button:focus-visible, input:focus-visible + span { outline: 3px solid #e56b4a; outline-offset: 3px; }
 .app-shell { width: min(100%, 620px); min-height: 100vh; margin: 0 auto; background: #fffaf3; box-shadow: 0 0 32px #68758633; }
-.app-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1.5rem; color: #fffaf3; background: #1f2a3d; }
+.app-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1.5rem; color: #fffaf3; background: #1f2a3d; }
 .eyebrow, .section-kicker { margin: 0 0 .4rem; color: #f4c7a9; font: 700 .7rem/1.2 'Avenir Next', 'Trebuchet MS', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
 h1, h2, p { margin-top: 0; }
 h1, h2 { font-family: 'Palatino Linotype', Baskerville, serif; }
@@ -41,7 +41,7 @@ textarea::placeholder { color: #687586; opacity: 1; }
 .secondary-button:hover { background: #e7eef2; }
 .primary-button:disabled, .secondary-button:disabled, .tertiary-button:disabled { cursor: not-allowed; opacity: .5; }
 .response-panel, .placeholder-panel { padding: 1.1rem; border: 1px solid #d9dfe4; border-left: 5px solid #e56b4a; background: #fff; }
-.panel-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.panel-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; align-items: flex-start; }
 .panel-heading h2 { margin-bottom: 0; }
 .response-state { padding: .35rem .5rem; color: #275d73; background: #e7eef2; font: 700 .7rem 'Avenir Next', 'Trebuchet MS', sans-serif; white-space: nowrap; }
 .response-message { margin: 1.1rem 0 0; color: #29364a; line-height: 1.6; }
@@ -61,9 +61,9 @@ textarea::placeholder { color: #687586; opacity: 1; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .accessibility-preferences { min-width: 0; margin: 1.5rem 0 0; padding: 0; border: 0; }
 .settings-list { display: grid; gap: .65rem; }
-.accessibility-setting { display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding: .95rem; border: 1px solid #d9dfe4; border-radius: 5px; background: #fff; cursor: pointer; }
+.accessibility-setting { display: flex; justify-content: space-between; gap: 1rem; align-items: center; min-width: 0; padding: .95rem; border: 1px solid #d9dfe4; border-radius: 5px; background: #fff; cursor: pointer; }
 .accessibility-setting:hover { background: #f7f9f8; }
-.setting-copy { display: grid; gap: .25rem; }
+.setting-copy { display: grid; gap: .25rem; min-width: 0; }
 .setting-copy strong { color: #1f2a3d; font: 700 1rem 'Avenir Next', 'Trebuchet MS', sans-serif; }
 .setting-copy small { max-width: 38ch; color: #536273; line-height: 1.4; }
 .setting-control { display: flex; flex: 0 0 auto; align-items: center; gap: .5rem; }

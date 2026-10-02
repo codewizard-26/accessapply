@@ -15,7 +15,7 @@ export function Transcript({ entries }: TranscriptProps) {
           <h2 id="transcript-title">Conversation</h2>
         </div>
       </div>
-      <ol className="transcript-list" aria-live="polite">
+      <ol className="transcript-list">
         {entries.map((entry) => (
           <li className="transcript-entry" key={entry.id}>
             <strong>{entry.speaker === 'user' ? 'You' : 'Agent'}</strong>

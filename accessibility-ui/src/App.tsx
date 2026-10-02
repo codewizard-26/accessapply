@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AccessibilityPage } from './components/AccessibilityPage'
 import { SpeechControls } from './components/SpeechControls'
@@ -47,6 +47,7 @@ function App() {
   const [speechState, setSpeechState] = useState<SpeechState>('ready')
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
+  const voiceTimersRef = useRef<number[]>([])
   const { response, status, submitCommand } = useMockAgent()
 
   const displayStatus = speechState === 'speaking'
@@ -57,7 +58,17 @@ function App() {
         ? 'Listening'
         : voiceState === 'processing'
           ? 'Processing voice command'
+          : voiceState === 'error'
+            ? 'Voice command needs attention'
           : agentStatusLabels[status]
+
+    useEffect(() => {
+      const voiceTimers = voiceTimersRef.current
+
+      return () => {
+        voiceTimers.forEach((timer) => window.clearTimeout(timer))
+      }
+    }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -75,14 +86,17 @@ function App() {
   }
 
   const startVoiceCommand = () => {
+    voiceTimersRef.current.forEach((timer) => window.clearTimeout(timer))
     setVoiceState('listening')
-    window.setTimeout(() => {
+    const processingTimer = window.setTimeout(() => {
       setVoiceState('processing')
-      window.setTimeout(() => {
+      const completeTimer = window.setTimeout(() => {
         setCommand('Read the requirements of this job.')
         setVoiceState('idle')
       }, 450)
+      voiceTimersRef.current.push(completeTimer)
     }, 700)
+    voiceTimersRef.current.push(processingTimer)
   }
 
   const updatePreference = (setting: AccessibilityPreferenceKey, checked: boolean) => {
@@ -121,7 +135,7 @@ function App() {
           </form>
 
           <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response && <span className="response-state">Ready to read</span>}</div>
-            {status === 'processing' ? <p className="response-message" aria-live="polite">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" aria-live="assertive">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" aria-live="polite">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <p className="response-message muted">Your response will appear here. You stay in control of every action.</p>}
+            {status === 'processing' ? <p className="response-message" role="status">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" role="alert">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" role="status">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <p className="response-message muted">Your response will appear here. You stay in control of every action.</p>}
           </section>
           {preferences.captions && <Transcript entries={transcript} />}
         </> : activePage === 'accessibility' ? <AccessibilityPage preferences={preferences} onPreferenceChange={updatePreference} /> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">Recent activity</p><h2 id="placeholder-title">History is coming next</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
