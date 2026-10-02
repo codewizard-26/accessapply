@@ -406,34 +406,76 @@ export async function continueAgentTask(
 }
 
 /**
- * Resumes an agent task after an `ask_user` interaction when the user supplies an answer.
- * Treats the answer strictly as user input, feeds it into Gemini with prior task context,
- * semantically validates the resulting action, updates task state, and returns it.
+ * Resumes an agent task waiting on user input (status must be `waiting_for_user`).
+ * Treats the answer strictly as user input/data, feeds it into Gemini with prior task context,
+ * semantically validates the resulting action against the task's most recent stored PageContext,
+ * updates task state, and returns it.
  */
 export async function respondToAgentTask(
-  userId: string,
-  taskId: string,
-  answer: string,
-  pageContext?: PageContext | undefined
+  param1: string,
+  param2: string,
+  answer: string
 ): Promise<{ task: AgentTask; action: AgentAction }> {
-  const [task] = await db
-    .select()
-    .from(agentTasks)
-    .where(eq(agentTasks.id, taskId))
-    .limit(1);
-
-  if (!task) {
-    throw new TaskNotFoundError(`Task with ID "${taskId}" not found.`);
+  if (!answer || typeof answer !== "string" || !answer.trim()) {
+    throw new Error("Missing or empty required field: answer");
   }
 
-  if (task.userId !== userId) {
+  const trimmedAnswer = answer.trim();
+
+  // Support either (taskId, userId, answer) or (userId, taskId, answer)
+  let task = await db
+    .select()
+    .from(agentTasks)
+    .where(eq(agentTasks.id, param1))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  let effectiveUserId = param2;
+  let effectiveTaskId = param1;
+
+  if (!task) {
+    const altTask = await db
+      .select()
+      .from(agentTasks)
+      .where(eq(agentTasks.id, param2))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (altTask) {
+      task = altTask;
+      effectiveUserId = param1;
+      effectiveTaskId = param2;
+    }
+  }
+
+  if (!task) {
+    throw new TaskNotFoundError(`Task with ID "${effectiveTaskId}" not found.`);
+  }
+
+  if (task.userId !== effectiveUserId) {
     throw new TaskForbiddenError("Access denied: you do not have permission to access this task.");
+  }
+
+  // Strictly enforce that the task is currently waiting_for_user
+  if (task.status === "running") {
+    throw new TaskStateError("Task is currently running and not waiting for user response.");
   }
 
   if (task.status === "completed") {
     throw new TaskStateError("Task is already completed.");
   }
 
+  if (task.status === "failed") {
+    throw new TaskStateError("Task has failed and cannot be resumed.");
+  }
+
+  if (task.status !== "waiting_for_user") {
+    throw new TaskStateError(
+      `Task is not waiting for user response (current status: "${task.status}").`
+    );
+  }
+
+  // Use the task's most recent stored PageContext
   const fallbackPageContext: PageContext = {
     url: task.currentUrl || "about:blank",
     title: "Current Page",
@@ -442,20 +484,20 @@ export async function respondToAgentTask(
   };
 
   const effectivePageContext: PageContext =
-    pageContext || task.lastPageContext || fallbackPageContext;
+    task.lastPageContext || fallbackPageContext;
 
-  const profile = await getStoredUserProfile(userId);
+  const profile = await getStoredUserProfile(effectiveUserId);
   const prompt = buildAgentPrompt(
     task.command,
     effectivePageContext,
     profile || undefined,
     task.history,
-    answer,
+    trimmedAnswer,
     task.lastQuestion || undefined
   );
   const action = await generateAgentAction(prompt);
 
-  // Semantic validation
+  // Semantic validation against latest stored PageContext
   validateActionAgainstPageContext(action, effectivePageContext);
 
   const newStatus = determineTaskStatus(action);
@@ -464,7 +506,7 @@ export async function respondToAgentTask(
     turn,
     timestamp: new Date().toISOString(),
     userQuestion: task.lastQuestion || undefined,
-    userAnswer: answer,
+    userAnswer: trimmedAnswer,
     action,
     pageUrl: effectivePageContext.url,
     pageTitle: effectivePageContext.title,
@@ -483,7 +525,7 @@ export async function respondToAgentTask(
       history: updatedHistory,
       updatedAt: new Date(),
     })
-    .where(eq(agentTasks.id, taskId))
+    .where(eq(agentTasks.id, effectiveTaskId))
     .returning();
 
   if (!updated) {

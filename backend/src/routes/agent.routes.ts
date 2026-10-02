@@ -4,6 +4,7 @@ import {
   getNextAction,
   startAgentTask,
   continueAgentTask,
+  respondToAgentTask,
   getAgentTask,
   TaskNotFoundError,
   TaskForbiddenError,
@@ -24,6 +25,10 @@ interface StartTaskRequestBody {
 
 interface ContinueTaskRequestBody {
   pageContext: PageContext;
+}
+
+interface RespondTaskRequestBody {
+  answer: string;
 }
 
 interface SingleActRequestBody {
@@ -149,6 +154,81 @@ agentRouter.post(
 
       const errorMessage =
         error instanceof Error ? error.message : "Failed to continue agent task";
+      const isValidationError = errorMessage.startsWith("Invalid agent target");
+      res.status(isValidationError ? 400 : 500).json({
+        success: false,
+        error: errorMessage,
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/agent/tasks/:taskId/respond
+ *
+ * Stage 3: Allows a user to answer an ask_user action and resume the task.
+ * Authenticates request via requireAuth.
+ * Validates non-empty string answer.
+ * Verifies task belongs to req.user.id.
+ * Verifies status === "waiting_for_user" (running, completed, failed return HTTP 400).
+ * Uses the task's most recent stored PageContext.
+ * Generates ONE next AgentAction using Gemini with user answer as data context.
+ * Semantically validates action against latest stored PageContext.
+ * Updates task state in Neon and returns next action.
+ */
+agentRouter.post(
+  "/tasks/:taskId/respond",
+  async (
+    req: Request<{ taskId: string }, unknown, RespondTaskRequestBody>,
+    res: Response
+  ) => {
+    const { taskId } = req.params;
+    const { answer } = req.body;
+    const userId = req.user!.id;
+
+    if (!taskId) {
+      res.status(400).json({
+        success: false,
+        error: "Missing required URL parameter: taskId",
+      });
+      return;
+    }
+
+    if (!answer || typeof answer !== "string" || !answer.trim()) {
+      res.status(400).json({
+        success: false,
+        error: "Missing or empty required field: answer",
+      });
+      return;
+    }
+
+    try {
+      const result = await respondToAgentTask(taskId, userId, answer.trim());
+
+      res.json({
+        success: true,
+        task: {
+          id: result.task.id,
+          status: result.task.status,
+        },
+        action: result.action,
+      });
+    } catch (error) {
+      if (error instanceof TaskNotFoundError) {
+        res.status(404).json({ success: false, error: error.message });
+        return;
+      }
+      if (error instanceof TaskForbiddenError) {
+        res.status(403).json({ success: false, error: error.message });
+        return;
+      }
+      if (error instanceof TaskStateError) {
+        res.status(400).json({ success: false, error: error.message });
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to respond to agent task";
       const isValidationError = errorMessage.startsWith("Invalid agent target");
       res.status(isValidationError ? 400 : 500).json({
         success: false,
