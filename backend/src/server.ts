@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { agentRouter } from "./routes/agent.routes.js";
-import { generateText } from "./services/llm.service.js";
+import { generateAgentAction } from "./services/llm.service.js";
 
 dotenv.config();
 
@@ -25,10 +25,10 @@ app.get("/health", (_req, res) => {
 // Temporary Gemini test endpoint
 app.get("/api/test-gemini", async (_req, res) => {
   try {
-    const text = await generateText("Reply with exactly: Gemini connection successful");
+    const action = await generateAgentAction("User wants to navigate to https://example.com");
     res.json({
       success: true,
-      result: text,
+      result: action,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal Server Error";
