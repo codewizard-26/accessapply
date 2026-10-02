@@ -6,7 +6,7 @@ function getMockMessage(command: string) {
   const normalizedCommand = command.toLowerCase()
 
   if (normalizedCommand.includes('requirement')) {
-    return 'Here are the main requirements: React, TypeScript, REST APIs, and two or more years of experience.'
+    return 'Here are the main requirements:\n\n• React\n• TypeScript\n• 2+ years experience\n• REST APIs'
   }
 
   if (normalizedCommand.includes('explain')) {

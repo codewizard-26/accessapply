@@ -9,7 +9,7 @@ type VoiceCommandProps = {
 
 const stateLabels: Record<VoiceState, string> = {
   idle: 'Voice command',
-  listening: 'Listening...',
+  listening: 'Listening... Speak your command.',
   processing: 'Processing voice command...',
   error: "We couldn't process the voice command.",
 }

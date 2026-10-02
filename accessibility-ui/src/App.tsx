@@ -12,9 +12,15 @@ import './App.css'
 type Page = 'assistant' | 'history' | 'accessibility'
 
 const modes: Array<{ id: AssistanceMode; label: string; description: string }> = [
-  { id: 'guide', label: 'Guide me', description: 'Explain the page and keep every decision with you.' },
-  { id: 'assist', label: 'Assist me', description: 'Reduce repetitive work with navigation and guidance.' },
-  { id: 'act', label: 'Act for me', description: 'Perform permitted actions after keeping you informed.' },
+  { id: 'guide', label: 'Guide me', description: 'Understand the page and follow instructions step by step.' },
+  { id: 'assist', label: 'Assist me', description: 'Get help with navigation and repetitive tasks.' },
+  { id: 'act', label: 'Act for me', description: 'Allow permitted actions with you informed and in control.' },
+]
+
+const exampleCommands = [
+  'Read the requirements of this job.',
+  'Explain this page.',
+  'Guide me through this application.',
 ]
 
 const agentStatusLabels: Record<AgentStatus, string> = {
@@ -47,6 +53,7 @@ function App() {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
   const voiceTimersRef = useRef<number[]>([])
+  const commandInputRef = useRef<HTMLTextAreaElement>(null)
   const { response, status, submitCommand } = useAgent()
 
   const displayStatus = speechState === 'speaking'
@@ -102,6 +109,11 @@ function App() {
     setPreferences((currentPreferences) => ({ ...currentPreferences, [setting]: checked }))
   }
 
+  const chooseExampleCommand = (example: string) => {
+    setCommand(example)
+    commandInputRef.current?.focus()
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -112,7 +124,8 @@ function App() {
       <nav className="main-nav" aria-label="Main navigation">
         {(['assistant', 'history', 'accessibility'] as Page[]).map((page) => (
           <button className={activePage === page ? 'nav-button active' : 'nav-button'} key={page} type="button" aria-current={activePage === page ? 'page' : undefined} onClick={() => setActivePage(page)}>
-            {page === 'assistant' ? 'Assistant' : page === 'history' ? 'History' : 'Accessibility'}
+            <span>{page === 'assistant' ? 'Assistant' : page === 'history' ? 'History' : 'Accessibility'}</span>
+            {activePage === page && <span className="nav-current">Current</span>}
           </button>
         ))}
       </nav>
@@ -129,12 +142,12 @@ function App() {
           </div></fieldset>
 
           <form className="command-form" onSubmit={handleSubmit}><label htmlFor="command">Your request</label>
-            <textarea id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
+            <textarea ref={commandInputRef} id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
             <div className="command-actions"><VoiceCommand state={voiceState} onStart={startVoiceCommand} onRetry={() => setVoiceState('idle')} disabled={!preferences.voiceCommands} /><button className="primary-button" type="submit">Send request</button></div>
           </form>
 
-          <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response && <span className="response-state">Ready to read</span>}</div>
-            {status === 'processing' ? <p className="response-message" role="status">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" role="alert">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" role="status">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <p className="response-message muted">Your response will appear here. You stay in control of every action.</p>}
+          <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response?.status === 'success' && <span className="response-state">Action completed</span>}</div>
+            {status === 'processing' ? <p className="response-message" role="status">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" role="alert">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" role="status">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <div className="empty-response"><p className="response-message muted">Your response will appear here. Start with one of these requests:</p><div className="example-list" aria-label="Example requests">{exampleCommands.map((example) => <button className="example-button" key={example} type="button" onClick={() => chooseExampleCommand(example)}>{example}</button>)}</div></div>}
           </section>
           {preferences.captions && <Transcript entries={transcript} />}
         </> : activePage === 'accessibility' ? <AccessibilityPage preferences={preferences} onPreferenceChange={updatePreference} /> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">Recent activity</p><h2 id="placeholder-title">History is coming next</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
