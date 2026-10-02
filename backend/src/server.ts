@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { agentRouter } from "./routes/agent.routes.js";
 
 dotenv.config();
 
@@ -19,6 +20,9 @@ app.get("/health", (_req, res) => {
     message: "AccessApply backend is running",
   });
 });
+
+// Agent routes
+app.use("/api/agent", agentRouter);
 
 // Start server
 app.listen(PORT, () => {
