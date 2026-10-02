@@ -77,6 +77,15 @@ export function VoiceCommand({ state, onRetry, onCommand, onStateChange, speakFo
   }, [state])
 
   useEffect(() => {
+    if (!disabled) return
+
+    stateRef.current = 'idle'
+    recognitionRef.current?.abort()
+    recognitionRef.current = null
+    if (state !== 'idle') onStateChange('idle')
+  }, [disabled, onStateChange, state])
+
+  useEffect(() => {
     if (!readContentAloud) return
     if (state === 'listening') announce('Listening. Speak your command.', true)
     if (state === 'processing') announce('Processing command.', true)
