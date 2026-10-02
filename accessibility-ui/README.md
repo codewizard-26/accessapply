@@ -56,7 +56,7 @@ export default defineConfig([
   - Mock agent responses
   - Processing and completion states
   - Transcript and captions
-  - Mock voice-command UI
+  - Browser speech-recognition voice-command UI
   - Native browser text-to-speech
   - Play, Pause, Resume, Stop, and Replay speech controls
   - Accessibility Preferences
@@ -165,7 +165,7 @@ export default defineConfig([
 
   `src/components/VoiceCommand.tsx` provides the voice interaction UI.
 
-  **Voice input is currently mocked.** It does not use microphone APIs, `SpeechRecognition`, or external speech services. It simulates Idle, Listening, Processing, and Error states. The Voice commands preference can disable the control.
+  Voice input uses the browser `SpeechRecognition` API with a `webkitSpeechRecognition` fallback where available. It supports Idle, Listening, Processing, Error, and unsupported-browser states. The Voice commands preference can disable the control. Recognition is used only to control this frontend; it does not provide browser automation or external speech services.
 
   ## Accessibility Preferences
 
@@ -220,7 +220,7 @@ export default defineConfig([
 
   These are intentional project boundaries, not bugs:
 
-  - Voice commands are mocked.
+  - Voice commands depend on browser speech-recognition support.
   - Agent responses are mocked.
   - Browser automation is not implemented.
   - Chrome extension packaging is not implemented here.

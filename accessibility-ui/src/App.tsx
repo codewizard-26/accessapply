@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AccessibilityPage } from './components/AccessibilityPage'
 import { SpeechControls } from './components/SpeechControls'
 import { Transcript } from './components/Transcript'
 import { VoiceCommand } from './components/VoiceCommand'
 import { useAgent } from './hooks/useAgent'
+import { parseVoiceCommand } from './services/voiceCommandParser'
 import type { AccessibilityPreferenceKey, AccessibilityPreferences } from './types/accessibility'
 import type { AgentStatus, AssistanceMode, SpeechState, TranscriptEntry, VoiceState } from './types/agent'
 import './App.css'
@@ -52,7 +53,6 @@ function App() {
   const [speechState, setSpeechState] = useState<SpeechState>('ready')
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
-  const voiceTimersRef = useRef<number[]>([])
   const commandInputRef = useRef<HTMLTextAreaElement>(null)
   const { response, status, submitCommand } = useAgent()
 
@@ -68,17 +68,8 @@ function App() {
             ? 'Voice command needs attention'
           : agentStatusLabels[status]
 
-    useEffect(() => {
-      const voiceTimers = voiceTimersRef.current
-
-      return () => {
-        voiceTimers.forEach((timer) => window.clearTimeout(timer))
-      }
-    }, [])
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmedCommand = command.trim()
+    const submitAssistantCommand = async (spokenOrTypedCommand: string) => {
+      const trimmedCommand = spokenOrTypedCommand.trim()
     setSpeechState('ready')
     const nextResponse = await submitCommand({ command: trimmedCommand, mode })
 
@@ -91,18 +82,25 @@ function App() {
     }
   }
 
-  const startVoiceCommand = () => {
-    voiceTimersRef.current.forEach((timer) => window.clearTimeout(timer))
-    setVoiceState('listening')
-    const processingTimer = window.setTimeout(() => {
-      setVoiceState('processing')
-      const completeTimer = window.setTimeout(() => {
-        setCommand('Read the requirements of this job.')
-        setVoiceState('idle')
-      }, 450)
-      voiceTimersRef.current.push(completeTimer)
-    }, 700)
-    voiceTimersRef.current.push(processingTimer)
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    await submitAssistantCommand(command)
+  }
+
+  const handleVoiceCommand = async (recognizedCommand: string) => {
+    const parsedCommand = parseVoiceCommand(recognizedCommand)
+
+    if (parsedCommand.type === 'navigate') {
+      setActivePage(parsedCommand.page)
+      return
+    }
+
+    if (parsedCommand.type === 'preference') {
+      updatePreference(parsedCommand.setting, parsedCommand.enabled)
+      return
+    }
+
+    await submitAssistantCommand(parsedCommand.command)
   }
 
   const updatePreference = (setting: AccessibilityPreferenceKey, checked: boolean) => {
@@ -143,7 +141,7 @@ function App() {
 
           <form className="command-form" onSubmit={handleSubmit}><label htmlFor="command">Your request</label>
             <textarea ref={commandInputRef} id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
-            <div className="command-actions"><VoiceCommand state={voiceState} onStart={startVoiceCommand} onRetry={() => setVoiceState('idle')} disabled={!preferences.voiceCommands} /><button className="primary-button" type="submit">Send request</button></div>
+            <div className="command-actions"><VoiceCommand state={voiceState} onRetry={() => setVoiceState('idle')} onCommand={handleVoiceCommand} onStateChange={setVoiceState} disabled={!preferences.voiceCommands} /><button className="primary-button" type="submit">Send request</button></div>
           </form>
 
           <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response?.status === 'success' && <span className="response-state">Action completed</span>}</div>
