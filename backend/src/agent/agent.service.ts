@@ -156,18 +156,19 @@ export function validateActionAgainstPageContext(
 export async function getNextAction(
   command: string,
   pageContext: PageContext,
-  userProfile?: UserProfile
+  userProfile?: UserProfile,
+  userId?: string
 ): Promise<AgentAction> {
-  // If userProfile was not passed in the request, retrieve it from the database
+  // If userProfile was not passed in the request, retrieve it for the authenticated user from Neon
   let effectiveProfile = userProfile;
-  if (!effectiveProfile) {
+  if (!effectiveProfile && userId) {
     try {
-      const stored = await getStoredUserProfile();
+      const stored = await getStoredUserProfile(userId);
       if (stored) {
         effectiveProfile = stored;
       }
     } catch {
-      // If DATABASE_URL is not set or DB is unavailable, continue gracefully
+      // If DB is unavailable, continue gracefully
     }
   }
 

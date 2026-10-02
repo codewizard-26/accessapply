@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import type { UserProfile } from "../../../shared/types/index.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 import {
   getStoredUserProfile,
   upsertUserProfile,
@@ -7,13 +8,18 @@ import {
 
 export const profileRouter = Router();
 
+// Protect all profile endpoints with persistent session authentication
+profileRouter.use(requireAuth);
+
 /**
  * GET /api/profile
- * Retrieves the currently saved UserProfile from Neon PostgreSQL.
+ * Retrieves the currently authenticated user's profile from Neon PostgreSQL.
  */
-profileRouter.get("/", async (_req: Request, res: Response) => {
+profileRouter.get("/", async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+
   try {
-    const profile = await getStoredUserProfile();
+    const profile = await getStoredUserProfile(userId);
 
     res.json({
       success: true,
@@ -31,33 +37,38 @@ profileRouter.get("/", async (_req: Request, res: Response) => {
 
 /**
  * PUT /api/profile
- * Saves or updates the UserProfile in Neon PostgreSQL.
+ * Saves or updates the profile for the currently authenticated user.
+ * Derives user identity strictly from the authenticated session (never from req.body).
  */
-profileRouter.put("/", async (req: Request<unknown, unknown, UserProfile>, res: Response) => {
-  const profileData = req.body;
+profileRouter.put(
+  "/",
+  async (req: Request<unknown, unknown, UserProfile>, res: Response) => {
+    const userId = req.user!.id;
+    const profileData = req.body;
 
-  if (!profileData || !profileData.name || !profileData.email) {
-    res.status(400).json({
-      success: false,
-      error: "Missing required profile fields: name and email are required.",
-    });
-    return;
+    if (!profileData || !profileData.name || !profileData.email) {
+      res.status(400).json({
+        success: false,
+        error: "Missing required profile fields: name and email are required.",
+      });
+      return;
+    }
+
+    try {
+      const saved = await upsertUserProfile(userId, profileData);
+
+      res.json({
+        success: true,
+        profile: saved,
+        message: "Profile saved successfully",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save profile";
+      res.status(500).json({
+        success: false,
+        error: errorMessage,
+      });
+    }
   }
-
-  try {
-    const saved = await upsertUserProfile(profileData);
-
-    res.json({
-      success: true,
-      profile: saved,
-      message: "Profile saved successfully",
-    });
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to save profile";
-    res.status(500).json({
-      success: false,
-      error: errorMessage,
-    });
-  }
-});
+);

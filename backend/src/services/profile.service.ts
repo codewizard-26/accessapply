@@ -4,22 +4,15 @@ import { userProfiles, rowToUserProfile } from "../db/schema.js";
 import type { UserProfile } from "../../../shared/types/index.js";
 
 /**
- * Isolated development user ID for linking database rows
- * without implementing a premature or fake authentication system.
- */
-export const DEV_USER_ID = "dev-user-001";
-
-/**
- * Retrieves the stored UserProfile from the database for the given user ID.
- * Defaults to the isolated development user ID.
+ * Retrieves the stored UserProfile from the database for the given authenticated user ID.
  */
 export async function getStoredUserProfile(
-  userId: string = DEV_USER_ID
+  userId: string
 ): Promise<UserProfile | null> {
   const [row] = await db
     .select()
     .from(userProfiles)
-    .where(eq(userProfiles.id, userId))
+    .where(eq(userProfiles.userId, userId))
     .limit(1);
 
   if (!row) {
@@ -30,14 +23,14 @@ export async function getStoredUserProfile(
 }
 
 /**
- * Upserts a UserProfile for the given user ID in Neon PostgreSQL.
+ * Upserts a UserProfile for the authenticated user ID in Neon PostgreSQL.
  */
 export async function upsertUserProfile(
-  profile: UserProfile,
-  userId: string = DEV_USER_ID
+  userId: string,
+  profile: UserProfile
 ): Promise<UserProfile> {
   const values = {
-    id: userId,
+    userId,
     name: profile.name,
     email: profile.email,
     phone: profile.phone ?? null,
@@ -60,7 +53,7 @@ export async function upsertUserProfile(
     .insert(userProfiles)
     .values(values)
     .onConflictDoUpdate({
-      target: userProfiles.id,
+      target: userProfiles.userId,
       set: values,
     });
 

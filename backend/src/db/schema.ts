@@ -1,11 +1,50 @@
 import { pgTable, text, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import crypto from "node:crypto";
 import type { AccessibilityPreferences, UserProfile } from "../../../shared/types/index.js";
 
 /**
+ * PostgreSQL schema for AccessApply users.
+ */
+export const users = pgTable("users", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type UserRow = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+/**
+ * PostgreSQL schema for persistent user sessions.
+ */
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(), // Cryptographically random session identifier
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type SessionRow = typeof sessions.$inferSelect;
+export type InsertSession = typeof sessions.$inferInsert;
+
+/**
  * PostgreSQL schema for persisting UserProfile in Neon database.
+ * Each profile is uniquely owned by a user (users.id -> user_profiles.userId).
  */
 export const userProfiles = pgTable("user_profiles", {
-  id: text("id").primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
