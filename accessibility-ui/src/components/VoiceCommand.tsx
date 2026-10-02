@@ -4,6 +4,7 @@ type VoiceCommandProps = {
   state: VoiceState
   onStart: () => void
   onRetry: () => void
+  disabled?: boolean
 }
 
 const stateLabels: Record<VoiceState, string> = {
@@ -13,7 +14,11 @@ const stateLabels: Record<VoiceState, string> = {
   error: "We couldn't process the voice command.",
 }
 
-export function VoiceCommand({ state, onStart, onRetry }: VoiceCommandProps) {
+export function VoiceCommand({ state, onStart, onRetry, disabled = false }: VoiceCommandProps) {
+  if (disabled) {
+    return <button className="secondary-button" type="button" disabled aria-label="Voice commands are disabled">Voice commands disabled</button>
+  }
+
   if (state === 'error') {
     return (
       <div className="voice-error" role="alert">

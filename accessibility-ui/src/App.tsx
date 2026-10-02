@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { AccessibilityPage } from './components/AccessibilityPage'
 import { SpeechControls } from './components/SpeechControls'
 import { Transcript } from './components/Transcript'
 import { VoiceCommand } from './components/VoiceCommand'
 import { useMockAgent } from './hooks/useMockAgent'
+import type { AccessibilityPreferenceKey, AccessibilityPreferences } from './types/accessibility'
 import type { AgentStatus, SpeechState, TranscriptEntry, VoiceState } from './types/agent'
 import './App.css'
 
@@ -26,6 +28,17 @@ const agentStatusLabels: Record<AgentStatus, string> = {
   error: 'Needs attention',
 }
 
+const defaultPreferences: AccessibilityPreferences = {
+  voiceCommands: true,
+  readContentAloud: true,
+  textOnlyMode: false,
+  captions: true,
+  simplifiedLanguage: false,
+  keyboardFirstNavigation: true,
+  stepByStepGuidance: true,
+  reducedVisualClutter: false,
+}
+
 function App() {
   const [activePage, setActivePage] = useState<Page>('assistant')
   const [mode, setMode] = useState<AssistanceMode>('guide')
@@ -33,6 +46,7 @@ function App() {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle')
   const [speechState, setSpeechState] = useState<SpeechState>('ready')
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
+  const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
   const { response, status, submitCommand } = useMockAgent()
 
   const displayStatus = speechState === 'speaking'
@@ -71,6 +85,10 @@ function App() {
     }, 700)
   }
 
+  const updatePreference = (setting: AccessibilityPreferenceKey, checked: boolean) => {
+    setPreferences((currentPreferences) => ({ ...currentPreferences, [setting]: checked }))
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -99,14 +117,14 @@ function App() {
 
           <form className="command-form" onSubmit={handleSubmit}><label htmlFor="command">Your request</label>
             <textarea id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
-            <div className="command-actions"><VoiceCommand state={voiceState} onStart={startVoiceCommand} onRetry={() => setVoiceState('idle')} /><button className="primary-button" type="submit">Send request</button></div>
+            <div className="command-actions"><VoiceCommand state={voiceState} onStart={startVoiceCommand} onRetry={() => setVoiceState('idle')} disabled={!preferences.voiceCommands} /><button className="primary-button" type="submit">Send request</button></div>
           </form>
 
           <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response && <span className="response-state">Ready to read</span>}</div>
             {status === 'processing' ? <p className="response-message" aria-live="polite">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" aria-live="assertive">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" aria-live="polite">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <p className="response-message muted">Your response will appear here. You stay in control of every action.</p>}
           </section>
-          <Transcript entries={transcript} />
-        </> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">{activePage === 'history' ? 'Recent activity' : 'Your preferences'}</p><h2 id="placeholder-title">{activePage === 'history' ? 'History is coming next' : 'Accessibility settings are coming next'}</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
+          {preferences.captions && <Transcript entries={transcript} />}
+        </> : activePage === 'accessibility' ? <AccessibilityPage preferences={preferences} onPreferenceChange={updatePreference} /> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">Recent activity</p><h2 id="placeholder-title">History is coming next</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
       </main>
     </div>
   )
