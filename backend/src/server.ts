@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { agentRouter } from "./routes/agent.routes.js";
+import { generateText } from "./services/llm.service.js";
 
 dotenv.config();
 
@@ -19,6 +20,23 @@ app.get("/health", (_req, res) => {
     success: true,
     message: "AccessApply backend is running",
   });
+});
+
+// Temporary Gemini test endpoint
+app.get("/api/test-gemini", async (_req, res) => {
+  try {
+    const text = await generateText("Reply with exactly: Gemini connection successful");
+    res.json({
+      success: true,
+      result: text,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal Server Error";
+    res.status(500).json({
+      success: false,
+      error: message,
+    });
+  }
 });
 
 // Agent routes
