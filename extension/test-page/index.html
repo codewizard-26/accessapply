@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Frontend Developer - Test Portal</title>
+    <style>
+      body {
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+        max-width: 720px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      button {
+        padding: 8px 14px;
+        font: inherit;
+      }
+      .hidden {
+        display: none;
+      }
+      section {
+        margin-top: 40px;
+      }
+      label {
+        display: block;
+        margin-top: 14px;
+      }
+      input,
+      textarea,
+      select {
+        font: inherit;
+        padding: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Frontend Developer</h1>
+    <p>
+      Location: Remote (US) &middot; Employment type: Full-time &middot; Salary:
+      $120,000 - $160,000
+    </p>
+
+    <nav aria-label="Primary">
+      <a href="#requirements">Skip to requirements</a>
+      <a href="https://example.com/privacy" id="privacy-link">Privacy policy</a>
+    </nav>
+
+    <section id="requirements">
+      <h2>Requirements</h2>
+      <ul>
+        <li>Strong TypeScript and JavaScript fundamentals</li>
+        <li>Experience with React and accessibility (WCAG 2.1 AA)</li>
+        <li>Comfortable reading and writing technical documentation</li>
+      </ul>
+      <h3>How to apply</h3>
+      <p>
+        Click the apply button below and complete the short application form.
+      </p>
+    </section>
+
+    <section>
+      <h2>Actions</h2>
+      <p>
+        <button id="details-btn" type="button">Show more details</button>
+        <button id="apply-btn" type="button">Apply Now</button>
+        <button id="disabled-btn" type="button" disabled>Unavailable</button>
+      </p>
+      <p>
+        <button id="aria-btn" type="button" aria-label="Save job to my list">
+          ☆
+        </button>
+      </p>
+      <p>
+        <span id="result" role="status" aria-live="polite"
+          >No action taken yet.</span
+        >
+      </p>
+    </section>
+
+    <section>
+      <h2>Application form</h2>
+      <form id="apply-form" novalidate>
+        <label for="full-name">Full name</label>
+        <input
+          id="full-name"
+          name="fullName"
+          type="text"
+          required
+          placeholder="Jane Doe"
+        />
+
+        <label for="email">Email address</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          placeholder="jane@example.com"
+        />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" />
+
+        <label for="cover">Cover letter</label>
+        <textarea
+          id="cover"
+          name="cover"
+          rows="4"
+          placeholder="Tell us why you are interested"
+        ></textarea>
+
+        <label for="notice">Notice period</label>
+        <select id="notice" name="notice">
+          <option value="">Select...</option>
+          <option value="1w">1 week</option>
+          <option value="2w">2 weeks</option>
+          <option value="1m">1 month</option>
+        </select>
+
+        <p>
+          <label style="display: inline">
+            <input id="consent" type="checkbox" /> I consent to data processing
+          </label>
+        </p>
+        <p><button type="submit">Submit application</button></p>
+      </form>
+    </section>
+
+    <section>
+      <h2>Hidden content (must not be scanned)</h2>
+      <p class="hidden" id="secret">INTERNAL_SECRET_TOKEN_DO_NOT_SCAN</p>
+      <p style="display: none">ANOTHER_HIDDEN_TOKEN</p>
+    </section>
+
+    <section style="height: 250vh">
+      <h2>Scroll target</h2>
+      <p>Scroll down to reach the footer section.</p>
+      <div id="spacer" style="height: 120vh"></div>
+      <h2>Footer</h2>
+      <p id="footer-marker">You have reached the bottom of the test page.</p>
+    </section>
+
+    <script>
+      document
+        .getElementById("details-btn")
+        .addEventListener("click", function () {
+          document.getElementById("result").textContent = "Details expanded.";
+        });
+      document
+        .getElementById("apply-btn")
+        .addEventListener("click", function () {
+          document.getElementById("result").textContent = "Apply flow opened.";
+          document.getElementById("apply-form").scrollIntoView();
+        });
+      document
+        .getElementById("aria-btn")
+        .addEventListener("click", function () {
+          this.setAttribute("aria-label", "Job saved to my list");
+          document.getElementById("result").textContent = "Job saved.";
+        });
+      document
+        .getElementById("apply-form")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          document.getElementById("result").textContent =
+            "Form submission blocked by the test page.";
+        });
+    </script>
+  </body>
+</html>
