@@ -559,13 +559,18 @@ async function runSingleStep(mockAction?: AgentAction): Promise<PopupResponse<un
 
 chrome.runtime.onMessage.addListener(
   (
-    request: PopupRequest,
+    request: PopupRequest | { id?: string; type: "CHECK_HEALTH" },
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: PopupResponse) => void,
+    sendResponse: (response: PopupResponse | { ok: boolean; detail: string }) => void,
   ): boolean => {
     void (async () => {
       try {
         switch (request.type) {
+          case "CHECK_HEALTH": {
+            // The popup reads { ok, detail } directly, so do not wrap it.
+            sendResponse(await checkHealth(await loadSettings()));
+            return;
+          }
           case "GET_SNAPSHOT": {
             sendResponse({ ok: true, data: await buildSnapshot() });
             return;
@@ -673,14 +678,3 @@ chrome.runtime.onStartup.addListener(() => {
     }
   })();
 });
-
-// Health check on demand from the popup.
-chrome.runtime.onMessage.addListener(
-  (_request: { type: "CHECK_HEALTH" }, _sender, sendResponse) => {
-    void (async () => {
-      const settings = await loadSettings();
-      sendResponse(await checkHealth(settings));
-    })();
-    return true;
-  },
-);
