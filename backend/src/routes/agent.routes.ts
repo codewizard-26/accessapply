@@ -4,6 +4,7 @@ import type { AgentAction, PageContext, UserProfile } from "../../../shared/type
 export const agentRouter = Router();
 
 interface AgentRequestBody {
+  command: string;
   pageContext: PageContext;
   userProfile?: UserProfile;
 }
@@ -11,13 +12,21 @@ interface AgentRequestBody {
 /**
  * POST /api/agent/act
  * 
- * Receives the current webpage context and user profile from the browser extension,
+ * Receives the user command, webpage context, and user profile from the browser extension,
  * and returns the next structured action to execute.
  */
 agentRouter.post("/act", (req: Request<unknown, unknown, AgentRequestBody>, res: Response) => {
-  const { pageContext, userProfile } = req.body;
+  const { command, pageContext, userProfile } = req.body;
 
-  // Basic validation: ensure pageContext is provided
+  // Validation: ensure command and pageContext with url are provided
+  if (!command || !command.trim()) {
+    res.status(400).json({
+      success: false,
+      error: "Missing or empty required field: command",
+    });
+    return;
+  }
+
   if (!pageContext || !pageContext.url) {
     res.status(400).json({
       success: false,
@@ -36,6 +45,8 @@ agentRouter.post("/act", (req: Request<unknown, unknown, AgentRequestBody>, res:
   res.json({
     success: true,
     action: mockAction,
-    message: `Received context for: ${pageContext.title || pageContext.url}`,
+    message: `Received command "${command}" for: ${
+      pageContext.title || pageContext.url
+    }`,
   });
 });
