@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
-import type { AgentAction, PageContext, UserProfile } from "../../../shared/types/index.js";
+import type { PageContext, UserProfile } from "../../../shared/types/index.js";
+import { getNextAction } from "../agent/agent.service.js";
 
 export const agentRouter = Router();
 
@@ -13,9 +14,9 @@ interface AgentRequestBody {
  * POST /api/agent/act
  * 
  * Receives the user command, webpage context, and user profile from the browser extension,
- * and returns the next structured action to execute.
+ * validates the input, and delegates action determination to the AgentService.
  */
-agentRouter.post("/act", (req: Request<unknown, unknown, AgentRequestBody>, res: Response) => {
+agentRouter.post("/act", async (req: Request<unknown, unknown, AgentRequestBody>, res: Response) => {
   const { command, pageContext, userProfile } = req.body;
 
   // Validation: ensure command and pageContext with url are provided
@@ -35,18 +36,21 @@ agentRouter.post("/act", (req: Request<unknown, unknown, AgentRequestBody>, res:
     return;
   }
 
-  // Phase 1 Mock Action:
-  // Demonstrates returning a structured AgentAction contract
-  const mockAction: AgentAction = {
-    action: "click",
-    target: pageContext.elements?.[0]?.id || "apply-button",
-  };
+  try {
+    // Delegate to AgentService
+    const action = await getNextAction(command, pageContext, userProfile);
 
-  res.json({
-    success: true,
-    action: mockAction,
-    message: `Received command "${command}" for: ${
-      pageContext.title || pageContext.url
-    }`,
-  });
+    res.json({
+      success: true,
+      action,
+      message: `Received command "${command}" for: ${
+        pageContext.title || pageContext.url
+      }`,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Failed to determine next agent action",
+    });
+  }
 });
