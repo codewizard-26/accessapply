@@ -4,12 +4,11 @@ import { AccessibilityPage } from './components/AccessibilityPage'
 import { SpeechControls } from './components/SpeechControls'
 import { Transcript } from './components/Transcript'
 import { VoiceCommand } from './components/VoiceCommand'
-import { useMockAgent } from './hooks/useMockAgent'
+import { useAgent } from './hooks/useAgent'
 import type { AccessibilityPreferenceKey, AccessibilityPreferences } from './types/accessibility'
-import type { AgentStatus, SpeechState, TranscriptEntry, VoiceState } from './types/agent'
+import type { AgentStatus, AssistanceMode, SpeechState, TranscriptEntry, VoiceState } from './types/agent'
 import './App.css'
 
-type AssistanceMode = 'guide' | 'assist' | 'act'
 type Page = 'assistant' | 'history' | 'accessibility'
 
 const modes: Array<{ id: AssistanceMode; label: string; description: string }> = [
@@ -48,7 +47,7 @@ function App() {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
   const voiceTimersRef = useRef<number[]>([])
-  const { response, status, submitCommand } = useMockAgent()
+  const { response, status, submitCommand } = useAgent()
 
   const displayStatus = speechState === 'speaking'
     ? 'Speaking'
@@ -74,7 +73,7 @@ function App() {
     event.preventDefault()
     const trimmedCommand = command.trim()
     setSpeechState('ready')
-    const nextResponse = await submitCommand(trimmedCommand)
+    const nextResponse = await submitCommand({ command: trimmedCommand, mode })
 
     if (nextResponse) {
       setTranscript((currentTranscript) => [

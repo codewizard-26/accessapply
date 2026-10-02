@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { mockAgentCommand } from '../services/mockAgent'
-import type { AgentResponse, AgentStatus } from '../types/agent'
+import { mockAgentService } from '../services/mockAgent'
+import type { AgentRequest, AgentResponse, AgentService, AgentStatus } from '../types/agent'
 
-export function useMockAgent() {
+// Mock implementation used until the backend agent is connected.
+export function useAgent(agentService: AgentService = mockAgentService) {
   const [status, setStatus] = useState<AgentStatus>('ready')
   const [response, setResponse] = useState<AgentResponse | null>(null)
 
-  const submitCommand = async (command: string) => {
-    if (!command.trim()) {
+  const submitCommand = async (request: AgentRequest) => {
+    if (!request.command.trim()) {
       setStatus('waiting')
       return null
     }
@@ -16,7 +17,7 @@ export function useMockAgent() {
     setResponse(null)
 
     try {
-      const nextResponse = await mockAgentCommand(command.trim())
+      const nextResponse = await agentService.execute({ ...request, command: request.command.trim() })
       setResponse(nextResponse)
       setStatus(nextResponse.status === 'success' ? 'completed' : 'error')
       return nextResponse

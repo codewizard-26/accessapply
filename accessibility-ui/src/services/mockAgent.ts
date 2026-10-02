@@ -1,4 +1,4 @@
-import type { AgentResponse } from '../types/agent'
+import type { AgentRequest, AgentService } from '../types/agent'
 
 const PROCESSING_DELAY = 450
 
@@ -20,10 +20,12 @@ function getMockMessage(command: string) {
   return 'I can help explain this page, read the job requirements, or guide you through the next step.'
 }
 
-export function mockAgentCommand(command: string): Promise<AgentResponse> {
-  return new Promise((resolve) => {
-    window.setTimeout(() => {
-      resolve({ message: getMockMessage(command), status: 'success' })
-    }, PROCESSING_DELAY)
-  })
+export const mockAgentService: AgentService = {
+  execute(request: AgentRequest) {
+    return new Promise((resolve) => {
+      window.setTimeout(() => {
+        resolve({ message: getMockMessage(request.command), status: 'success' })
+      }, PROCESSING_DELAY)
+    })
+  },
 }

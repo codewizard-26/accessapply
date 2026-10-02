@@ -1,3 +1,5 @@
+export type AssistanceMode = 'guide' | 'assist' | 'act'
+
 export type AgentStatus =
   | 'ready'
   | 'listening'
@@ -10,6 +12,15 @@ export type AgentStatus =
 export type AgentResponse = {
   message: string
   status: 'success' | 'error'
+}
+
+export type AgentRequest = {
+  command: string
+  mode: AssistanceMode
+}
+
+export interface AgentService {
+  execute(request: AgentRequest): Promise<AgentResponse>
 }
 
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'error'
