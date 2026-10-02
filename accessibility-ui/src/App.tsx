@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { SpeechControls } from './components/SpeechControls'
+import { Transcript } from './components/Transcript'
+import { VoiceCommand } from './components/VoiceCommand'
+import { useMockAgent } from './hooks/useMockAgent'
+import type { AgentStatus, SpeechState, TranscriptEntry, VoiceState } from './types/agent'
 import './App.css'
 
 type AssistanceMode = 'guide' | 'assist' | 'act'
@@ -11,41 +16,66 @@ const modes: Array<{ id: AssistanceMode; label: string; description: string }> =
   { id: 'act', label: 'Act for me', description: 'Perform permitted actions after keeping you informed.' },
 ]
 
-function getMockResponse(command: string) {
-  const normalizedCommand = command.toLowerCase()
-  if (normalizedCommand.includes('requirement')) return 'Here are the main requirements: React, TypeScript, REST APIs, and two or more years of experience.'
-  if (normalizedCommand.includes('explain')) return 'This page appears to be a job application. I can help you review the role, find the application steps, or explain any field.'
-  if (normalizedCommand.includes('guide')) return 'I can guide you one step at a time. Tell me which part of the application you would like to work on first.'
-  return 'I can help explain this page, read the job requirements, or guide you through the next step.'
+const agentStatusLabels: Record<AgentStatus, string> = {
+  ready: 'Ready',
+  listening: 'Listening',
+  processing: 'Processing',
+  speaking: 'Speaking',
+  waiting: 'Waiting for a command',
+  completed: 'Action completed',
+  error: 'Needs attention',
 }
 
 function App() {
   const [activePage, setActivePage] = useState<Page>('assistant')
   const [mode, setMode] = useState<AssistanceMode>('guide')
   const [command, setCommand] = useState('')
-  const [response, setResponse] = useState('')
-  const [status, setStatus] = useState('Ready')
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle')
+  const [speechState, setSpeechState] = useState<SpeechState>('ready')
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
+  const { response, status, submitCommand } = useMockAgent()
 
-  const submitCommand = (event: FormEvent<HTMLFormElement>) => {
+  const displayStatus = speechState === 'speaking'
+    ? 'Speaking'
+    : speechState === 'paused'
+      ? 'Reading paused'
+      : voiceState === 'listening'
+        ? 'Listening'
+        : voiceState === 'processing'
+          ? 'Processing voice command'
+          : agentStatusLabels[status]
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmedCommand = command.trim()
-    if (!trimmedCommand) {
-      setStatus('Waiting for a command')
-      return
+    setSpeechState('ready')
+    const nextResponse = await submitCommand(trimmedCommand)
+
+    if (nextResponse) {
+      setTranscript((currentTranscript) => [
+        ...currentTranscript,
+        { id: Date.now(), speaker: 'user', message: trimmedCommand },
+        { id: Date.now() + 1, speaker: 'agent', message: nextResponse.message },
+      ])
     }
-    setStatus('Processing')
-    setResponse('')
+  }
+
+  const startVoiceCommand = () => {
+    setVoiceState('listening')
     window.setTimeout(() => {
-      setResponse(getMockResponse(trimmedCommand))
-      setStatus('Action completed')
-    }, 450)
+      setVoiceState('processing')
+      window.setTimeout(() => {
+        setCommand('Read the requirements of this job.')
+        setVoiceState('idle')
+      }, 450)
+    }, 700)
   }
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <div><p className="eyebrow">Accessibility assistant</p><h1>AccessApply</h1></div>
-        <p className="status" aria-live="polite"><span className="status-mark" aria-hidden="true" /><span>{status}</span></p>
+        <p className="status" aria-live="polite"><span className="status-mark" aria-hidden="true" /><span>{displayStatus}</span></p>
       </header>
 
       <nav className="main-nav" aria-label="Main navigation">
@@ -67,14 +97,15 @@ function App() {
             </label>)}
           </div></fieldset>
 
-          <form className="command-form" onSubmit={submitCommand}><label htmlFor="command">Your request</label>
+          <form className="command-form" onSubmit={handleSubmit}><label htmlFor="command">Your request</label>
             <textarea id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
-            <div className="command-actions"><button className="secondary-button" type="button" onClick={() => setStatus('Listening')}>Voice command</button><button className="primary-button" type="submit">Send request</button></div>
+            <div className="command-actions"><VoiceCommand state={voiceState} onStart={startVoiceCommand} onRetry={() => setVoiceState('idle')} /><button className="primary-button" type="submit">Send request</button></div>
           </form>
 
-          <section className="response-panel" aria-labelledby="response-title" aria-live="polite"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response && <span className="response-state">Ready to read</span>}</div>
-            {status === 'Processing' ? <p className="response-message">Processing your request...</p> : response ? <p className="response-message">{response}</p> : <p className="response-message muted">Your response will appear here. You stay in control of every action.</p>}
+          <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response && <span className="response-state">Ready to read</span>}</div>
+            {status === 'processing' ? <p className="response-message" aria-live="polite">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" aria-live="assertive">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" aria-live="polite">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <p className="response-message muted">Your response will appear here. You stay in control of every action.</p>}
           </section>
+          <Transcript entries={transcript} />
         </> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">{activePage === 'history' ? 'Recent activity' : 'Your preferences'}</p><h2 id="placeholder-title">{activePage === 'history' ? 'History is coming next' : 'Accessibility settings are coming next'}</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
       </main>
     </div>
