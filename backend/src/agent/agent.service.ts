@@ -109,7 +109,7 @@ function isTargetInPageElements(target: string, elements: PageElement[]): boolea
  * Verifies that actions referencing a page element (click, type, read with target)
  * actually point to a real element present in pageContext.elements.
  */
-function validateActionAgainstPageContext(
+export function validateActionAgainstPageContext(
   action: AgentAction,
   pageContext: PageContext
 ): void {
