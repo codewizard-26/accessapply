@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AccessibilityPage } from './components/AccessibilityPage'
 import { SpeechControls } from './components/SpeechControls'
 import { Transcript } from './components/Transcript'
 import { VoiceCommand } from './components/VoiceCommand'
 import { useAgent } from './hooks/useAgent'
+import { useSpokenFocus } from './hooks/useSpokenFocus'
 import { parseVoiceCommand } from './services/voiceCommandParser'
 import type { AccessibilityPreferenceKey, AccessibilityPreferences } from './types/accessibility'
 import type { AgentStatus, AssistanceMode, SpeechState, TranscriptEntry, VoiceState } from './types/agent'
@@ -43,6 +44,13 @@ const defaultPreferences: AccessibilityPreferences = {
   keyboardFirstNavigation: true,
   stepByStepGuidance: true,
   reducedVisualClutter: false,
+  speakFocusedControls: true,
+}
+
+const pageLabels: Record<Page, string> = {
+  assistant: 'Assistant',
+  history: 'History',
+  accessibility: 'Accessibility',
 }
 
 function App() {
@@ -55,6 +63,7 @@ function App() {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
   const commandInputRef = useRef<HTMLTextAreaElement>(null)
   const { response, status, submitCommand } = useAgent()
+  const { announce, getFocusProps } = useSpokenFocus(preferences.speakFocusedControls)
 
   const displayStatus = speechState === 'speaking'
     ? 'Speaking'
@@ -68,6 +77,10 @@ function App() {
             ? 'Voice command needs attention'
           : agentStatusLabels[status]
 
+  useEffect(() => {
+    if (preferences.readContentAloud) announce(`${pageLabels[activePage]} page.`)
+  }, [activePage, announce, preferences.readContentAloud])
+
     const submitAssistantCommand = async (spokenOrTypedCommand: string) => {
       const trimmedCommand = spokenOrTypedCommand.trim()
     setSpeechState('ready')
@@ -79,6 +92,7 @@ function App() {
         { id: Date.now(), speaker: 'user', message: trimmedCommand },
         { id: Date.now() + 1, speaker: 'agent', message: nextResponse.message },
       ])
+      if (preferences.readContentAloud) announce('Command completed.')
     }
   }
 
@@ -90,8 +104,15 @@ function App() {
   const handleVoiceCommand = async (recognizedCommand: string) => {
     const parsedCommand = parseVoiceCommand(recognizedCommand)
 
+    if (parsedCommand.type === 'explain_focus') {
+      const focusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      announce(focusedElement?.dataset.voiceDescription ?? 'Move focus to a button, tab, mode, or setting to hear what it does.')
+      return
+    }
+
     if (parsedCommand.type === 'navigate') {
       setActivePage(parsedCommand.page)
+      if (preferences.readContentAloud) announce(`${pageLabels[parsedCommand.page]} page opened.`)
       return
     }
 
@@ -100,11 +121,31 @@ function App() {
       return
     }
 
+    if (/^read (this )?page/.test(parsedCommand.command.toLowerCase().trim())) {
+      const pageContent = activePage === 'accessibility'
+        ? `Accessibility page. ${Object.entries(preferences).map(([setting, enabled]) => `${setting.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`)} ${enabled ? 'enabled' : 'disabled'}.`).join(' ')}`
+        : `${pageLabels[activePage]} page. ${response?.message ?? 'Choose an assistance mode and enter a command to get started.'}`
+      announce(pageContent, true)
+      return
+    }
+
     await submitAssistantCommand(parsedCommand.command)
   }
 
   const updatePreference = (setting: AccessibilityPreferenceKey, checked: boolean) => {
     setPreferences((currentPreferences) => ({ ...currentPreferences, [setting]: checked }))
+    const settingLabels: Record<AccessibilityPreferenceKey, string> = {
+      voiceCommands: 'Voice commands',
+      readContentAloud: 'Read content aloud',
+      textOnlyMode: 'Text-only mode',
+      captions: 'Captions',
+      simplifiedLanguage: 'Simplified language',
+      keyboardFirstNavigation: 'Keyboard-first navigation',
+      stepByStepGuidance: 'Step-by-step guidance',
+      reducedVisualClutter: 'Reduced visual clutter',
+      speakFocusedControls: 'Speak focused controls',
+    }
+    if (preferences.readContentAloud) announce(`${settingLabels[setting]} ${checked ? 'enabled' : 'disabled'}.`)
   }
 
   const chooseExampleCommand = (example: string) => {
@@ -121,7 +162,7 @@ function App() {
 
       <nav className="main-nav" aria-label="Main navigation">
         {(['assistant', 'history', 'accessibility'] as Page[]).map((page) => (
-          <button className={activePage === page ? 'nav-button active' : 'nav-button'} key={page} type="button" aria-current={activePage === page ? 'page' : undefined} onClick={() => setActivePage(page)}>
+          <button {...getFocusProps(`${pageLabels[page]} tab.`)} data-voice-description={`${pageLabels[page]} tab. Opens the ${pageLabels[page].toLowerCase()} page.`} title={`Open ${pageLabels[page]}`} className={activePage === page ? 'nav-button active' : 'nav-button'} key={page} type="button" aria-current={activePage === page ? 'page' : undefined} onClick={() => setActivePage(page)}>
             <span>{page === 'assistant' ? 'Assistant' : page === 'history' ? 'History' : 'Accessibility'}</span>
             {activePage === page && <span className="nav-current">Current</span>}
           </button>
@@ -133,22 +174,22 @@ function App() {
           <section aria-labelledby="assistant-title"><p className="section-kicker">Current page</p><h2 id="assistant-title">How can I help?</h2><p className="intro">Ask for an explanation, a summary, or guidance through the next step.</p></section>
 
           <fieldset className="mode-picker"><legend>Assistance mode</legend><div className="mode-list">
-            {modes.map((option) => <label className={mode === option.id ? 'mode-option selected' : 'mode-option'} key={option.id}>
-              <input type="radio" name="assistance-mode" value={option.id} checked={mode === option.id} onChange={() => setMode(option.id)} />
+            {modes.map((option) => <label className={mode === option.id ? 'mode-option selected' : 'mode-option'} title={option.description} key={option.id}>
+              <input {...getFocusProps(`${option.label} mode. ${mode === option.id ? 'Currently selected.' : 'Not selected.'}`)} data-voice-description={`${option.label} mode. ${option.description} ${mode === option.id ? 'Currently selected.' : 'Not selected.'}`} title={option.description} type="radio" name="assistance-mode" value={option.id} checked={mode === option.id} onChange={() => { setMode(option.id); if (preferences.readContentAloud) announce(`${option.label} mode selected.`) }} />
               <span><strong>{option.label}</strong><small>{option.description}</small></span>
             </label>)}
           </div></fieldset>
 
           <form className="command-form" onSubmit={handleSubmit}><label htmlFor="command">Your request</label>
-            <textarea ref={commandInputRef} id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
-            <div className="command-actions"><VoiceCommand state={voiceState} onRetry={() => setVoiceState('idle')} onCommand={handleVoiceCommand} onStateChange={setVoiceState} disabled={!preferences.voiceCommands} /><button className="primary-button" type="submit">Send request</button></div>
+            <textarea {...getFocusProps('Your request. Text area.')} data-voice-description="Your request. Text area. Enter a command for AccessApply." title="Enter a command for AccessApply" ref={commandInputRef} id="command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Try: Read the requirements of this job." rows={3} />
+            <div className="command-actions"><VoiceCommand state={voiceState} onRetry={() => setVoiceState('idle')} onCommand={handleVoiceCommand} onStateChange={setVoiceState} speakFocusedControls={preferences.speakFocusedControls} readContentAloud={preferences.readContentAloud} disabled={!preferences.voiceCommands} /><button {...getFocusProps('Send command button.')} data-voice-description="Send command button. Submits your typed command to AccessApply." title="Send command to AccessApply" className="primary-button" type="submit">Send request</button></div>
           </form>
 
           <section className="response-panel" aria-labelledby="response-title"><div className="panel-heading"><div><p className="section-kicker">Agent response</p><h2 id="response-title">What I found</h2></div>{response?.status === 'success' && <span className="response-state">Action completed</span>}</div>
-            {status === 'processing' ? <p className="response-message" role="status">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" role="alert">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" role="status">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} /></> : <div className="empty-response"><p className="response-message muted">Your response will appear here. Start with one of these requests:</p><div className="example-list" aria-label="Example requests">{exampleCommands.map((example) => <button className="example-button" key={example} type="button" onClick={() => chooseExampleCommand(example)}>{example}</button>)}</div></div>}
+            {status === 'processing' ? <p className="response-message" role="status">Processing your request...</p> : status === 'error' ? <p className="response-message error-message" role="alert">{response?.message ?? 'Something went wrong. Please try again.'}</p> : response ? <><p className="response-message" role="status">{response.message}</p><SpeechControls key={response.message} message={response.message} onStateChange={setSpeechState} speakFocusedControls={preferences.speakFocusedControls} enabled={preferences.readContentAloud} /></> : <div className="empty-response"><p className="response-message muted">Your response will appear here. Start with one of these requests:</p><div className="example-list" aria-label="Example requests">{exampleCommands.map((example) => <button {...getFocusProps(`${example} example command.`)} className="example-button" key={example} type="button" onClick={() => chooseExampleCommand(example)}>{example}</button>)}</div></div>}
           </section>
           {preferences.captions && <Transcript entries={transcript} />}
-        </> : activePage === 'accessibility' ? <AccessibilityPage preferences={preferences} onPreferenceChange={updatePreference} /> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">Recent activity</p><h2 id="placeholder-title">History is coming next</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
+        </> : activePage === 'accessibility' ? <AccessibilityPage preferences={preferences} onPreferenceChange={updatePreference} speakFocusedControls={preferences.speakFocusedControls} /> : <section aria-labelledby="placeholder-title" className="placeholder-panel"><p className="section-kicker">Recent activity</p><h2 id="placeholder-title">History is coming next</h2><p className="intro">This first slice keeps the assistant experience focused. The next step will add this view without changing the navigation.</p></section>}
       </main>
     </div>
   )

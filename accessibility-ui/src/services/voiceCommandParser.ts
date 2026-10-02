@@ -6,6 +6,7 @@ export type VoiceNavigationTarget = 'assistant' | 'history' | 'accessibility'
 export type ParsedVoiceCommand =
   | { type: 'navigate'; page: VoiceNavigationTarget }
   | { type: 'preference'; setting: AccessibilityPreferenceKey; enabled: boolean }
+  | { type: 'explain_focus' }
   | { type: 'assistant'; command: string; mode?: AssistanceMode }
 
 const navigationTargets: Array<{ page: VoiceNavigationTarget; aliases: string[] }> = [
@@ -43,6 +44,15 @@ function isDisableCommand(command: string) {
 
 export function parseVoiceCommand(command: string): ParsedVoiceCommand {
   const normalizedCommand = normalizeCommand(command)
+
+  if (
+    /\bwhat does (this|that) (button|control|option) do\b/.test(normalizedCommand)
+    || /\bwhat is (this|that) (button|control|option)\b/.test(normalizedCommand)
+    || /\bexplain (this|that) (button|control|option)\b/.test(normalizedCommand)
+    || /\bwhat is (captions|voice commands|text only mode|simplified language)\b/.test(normalizedCommand)
+  ) {
+    return { type: 'explain_focus' }
+  }
 
   for (const target of navigationTargets) {
     if (hasAlias(normalizedCommand, target.aliases) && /\b(open|go to|select|show)\b/.test(normalizedCommand)) {

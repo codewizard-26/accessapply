@@ -1,255 +1,221 @@
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  # AccessApply Accessibility UI
-
-  AccessApply is an accessibility assistant that helps users interact with existing job websites. This package contains the accessibility-focused React frontend for the browser extension or side-panel experience.
-
-  This package is currently a standalone React development preview. It is not itself the Chrome extension.
-
-  ## Tech Stack
-
-  - React 19
-  - TypeScript
-  - Vite
-  - Tailwind CSS 4
-  - ESLint
+# AccessApply Accessibility UI
+
+AccessApply is an accessibility assistant that helps users interact with existing job websites. This package contains the accessibility-focused React frontend for the browser extension or side-panel experience.
+
+This package is currently a standalone React development preview. It is not itself the Chrome extension.
+
+## Tech Stack
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS 4
+- ESLint
+
+Styling is primarily maintained in `src/App.css`.
+
+## Running the Project
+
+```powershell
+cd D:\accessapply\accessibility-ui
+npm install
+npm run dev
+```
+
+Vite normally serves the development preview at `http://localhost:5173/`.
+
+```powershell
+npm run lint
+npm run build
+```
 
-  Styling is primarily maintained in `src/App.css`. Shared theme tokens are available from `../../shared/styles/design-tokens.css` for coordinated frontend styling.
-
-  ## Running the Project
+## Current Features
 
-  ```powershell
-  cd D:\accessapply\accessibility-ui
-  npm install
-  npm run dev
-  ```
+- Assistant, History, and Accessibility navigation
+- Guide me, Assist me, and Act for me modes
+- Typed and browser speech-recognition commands
+- Mock agent responses
+- Processing and completion states
+- Transcript and captions
+- Native browser text-to-speech
+- Spoken focus and important-state feedback
+- Discover-before-activate hover descriptions and focused-control explanations
+- Play, Pause, Resume, Stop, and Replay speech controls
+- Accessibility Preferences
+- Nine session-only preferences, including Speak focused controls
+- Keyboard accessibility
+- Responsive narrow-panel layout
 
-  Vite normally serves the development preview at [http://localhost:5173/](http://localhost:5173/).
+## Architecture
 
-  ```powershell
-  npm run lint
-  npm run build
-  ```
+```text
+User input
+  |
+  v
+App.tsx
+  |
+  +--> local voice command parser --> navigation/preferences
+  |
+  v
+useAgent()
+  |
+  v
+AgentService
+  |
+  v
+mockAgentService
+  |
+  v
+AgentResponse
+  |
+  +--> Transcript
+  |
+  +--> SpeechControls
+```
 
-  ## Current Features
+The mock service is intentionally used so frontend development does not depend on the backend team.
 
-  - Assistant, History, and Accessibility navigation
-  - Guide me, Assist me, and Act for me modes
-  - Natural-language command input
-  - Mock agent responses
-  - Processing and completion states
-  - Transcript and captions
-  - Browser speech-recognition voice-command UI
-  - Native browser text-to-speech
-  - Play, Pause, Resume, Stop, and Replay speech controls
-  - Accessibility Preferences
-  - Eight session-only preferences
-  - Keyboard accessibility
-  - Responsive narrow-panel layout
+## Agent Integration Contract
 
-  ## Architecture
+The agent contracts live in `src/types/agent.ts` and include `AgentRequest`, `AgentResponse`, `AgentService`, `AssistanceMode`, `AgentStatus`, `TranscriptEntry`, `VoiceState`, and `SpeechState`.
 
-  ```text
-  User
-    |
-    v
-  App.tsx
-    |
-    v
-  useAgent()
-    |
-    v
-  AgentService
-    |
-    v
-  mockAgentService
-    |
-    v
-  AgentResponse
-    |
-    v
-  Transcript
-    |
-    v
-  SpeechControls
-  ```
+An `AgentRequest` contains:
 
-  The mock service is intentionally used so frontend development does not depend on the backend team.
+```ts
+{
+  command: string;
+  mode: AssistanceMode;
+}
+```
 
-  ## Agent Integration Contract
+The service boundary is:
 
-  The agent contracts live in `src/types/agent.ts` and include:
+```ts
+interface AgentService {
+  execute(request: AgentRequest): Promise<AgentResponse>;
+}
+```
 
-  - `AgentRequest`
-  - `AgentResponse`
-  - `AgentService`
-  - `AssistanceMode`
-  - `AgentStatus`
-  - `TranscriptEntry`
-  - `VoiceState`
-  - `SpeechState`
+The current frontend does not call the backend. A future backend or AI implementation can replace the mock implementation behind this contract.
 
-  An `AgentRequest` contains:
+## Mock Agent
 
-  ```ts
-  {
-    command: string;
-    mode: AssistanceMode;
-  }
-  ```
+The mock implementation is in `src/services/mockAgent.ts`. It keeps a 450ms delay and responds as follows:
 
-  The service boundary is:
+```text
+"Read the requirements" -> requirements response
+"Explain"              -> page explanation
+"Guide"                -> step-by-step guidance
+Other commands          -> generic response
+```
 
-  ```ts
-  interface AgentService {
-    execute(request: AgentRequest): Promise<AgentResponse>;
-  }
-  ```
+The mock service currently ignores the selected mode, but it receives the mode through `AgentRequest` so a future agent can use it.
 
-  The current frontend does not call the backend. A future backend or AI implementation can replace the mock implementation behind this contract.
+## Voice Commands
 
-  ## Mock Agent
+`src/components/VoiceCommand.tsx` uses the browser `SpeechRecognition` API with a `webkitSpeechRecognition` fallback where available. It supports Idle, Listening, Processing, Error, and Unsupported states, microphone permission errors, no-speech errors, stopping recognition, and cleanup on unmount.
 
-  The mock implementation is in `src/services/mockAgent.ts`. It keeps a 450ms delay and currently responds as follows:
+`src/services/voiceCommandParser.ts` deterministically separates voice input into:
 
-  ```text
-  "Read the requirements"
-    -> requirements response
+- Local navigation commands for Assistant, History, and Accessibility
+- Local preference commands for the accessibility settings
+- Assistant commands passed through the existing `useAgent()` flow
 
-  "Explain"
-    -> page explanation
+Voice recognition is browser-native. It does not use an LLM, backend service, external speech service, Chrome API, or browser automation. Unsupported browsers continue to support typed commands.
 
-  "Guide"
-    -> step-by-step guidance
+## Speech Architecture
 
-  Other commands
-    -> generic response
-  ```
+`src/components/SpeechControls.tsx` uses `window.speechSynthesis` and `SpeechSynthesisUtterance` for browser-native text-to-speech.
 
-  The mock service currently ignores the selected mode, but it receives the mode through `AgentRequest` so a future agent can use it.
+Supported operations:
 
-  ## Speech Architecture
+- Play
+- Pause
+- Resume
+- Stop
+- Replay
 
-  `src/components/SpeechControls.tsx` uses the browser-native `window.speechSynthesis` API and `SpeechSynthesisUtterance`.
+Speech completion, friendly errors, unsupported-browser fallback, cleanup on unmount, and cleanup when the response changes are supported.
 
-  Supported operations:
+`src/hooks/useSpokenFocus.ts` provides optional short announcements for focused controls and important UI state changes. It avoids interrupting intentional long-form speech unless an explicit page-reading command requests it.
 
-  - Play
-  - Pause
-  - Resume
-  - Stop
-  - Replay
+Important controls also expose concise hover descriptions and focused-control metadata. Voice requests such as `What does this button do?`, `What is captions?`, and `Explain this option` describe the currently focused control without requiring activation first.
 
-  Speech completion updates the UI, errors use a friendly message, and unsupported browsers receive a clear fallback. Active speech is cancelled when the component unmounts or when the response changes.
+## Read This Page
 
-  **This is browser-native text-to-speech, not an external speech service.**
+The voice command `Read this page` speaks a concise summary of the current AccessApply page using the existing native speech synthesis mechanism. It reads relevant visible page information and active settings rather than blindly reading every DOM node.
 
-  ## Voice Command
+## Accessibility Preferences
 
-  `src/components/VoiceCommand.tsx` provides the voice interaction UI.
+The central preference type is in `src/types/accessibility.ts`:
 
-  Voice input uses the browser `SpeechRecognition` API with a `webkitSpeechRecognition` fallback where available. It supports Idle, Listening, Processing, Error, and unsupported-browser states. The Voice commands preference can disable the control. Recognition is used only to control this frontend; it does not provide browser automation or external speech services.
+```text
+voiceCommands
+readContentAloud
+textOnlyMode
+captions
+simplifiedLanguage
+keyboardFirstNavigation
+stepByStepGuidance
+reducedVisualClutter
+speakFocusedControls
+```
 
-  ## Accessibility Preferences
+These preferences are session-only React state and are not persisted. `speakFocusedControls` defaults to enabled and controls automatic speech descriptions for focused buttons, tabs, modes, and settings. Disabling it does not disable voice commands or manual speech controls.
 
-  The central preference type is in `src/types/accessibility.ts`:
+## Accessibility Design
 
-  ```text
-  voiceCommands
-  readContentAloud
-  textOnlyMode
-  captions
-  simplifiedLanguage
-  keyboardFirstNavigation
-  stepByStepGuidance
-  reducedVisualClutter
-  ```
+The UI uses:
 
-  These preferences are session-only React state and are not persisted.
+- Semantic HTML and native form controls
+- Keyboard navigation and visible focus states
+- Screen-reader-friendly labels
+- Explicit Enabled/Disabled text
+- No color-only status communication
+- Semantic status and error announcements
+- Reduced duplicate live-region announcements
+- Reduced-motion support
+- Responsive narrow-panel behavior
+- Optional spoken descriptions for focused controls
 
-  ## Accessibility Design
+## Extension Integration Boundary
 
-  The UI currently uses:
+This package is not responsible for the Chrome extension manifest, side-panel registration, popup registration, content scripts, DOM automation, browser tab interaction, or job website interaction. Those responsibilities belong to `extension/`.
 
-  - Semantic HTML and native form controls
-  - Keyboard navigation and visible focus states
-  - Screen-reader-friendly labels
-  - Explicit Enabled/Disabled text
-  - No color-only status communication
-  - Semantic status and error announcements
-  - Reduced duplicate live-region announcements
-  - Reduced-motion support
-  - Responsive narrow-panel behavior
+## Backend Integration Boundary
 
-  ## Extension Integration Boundary
+The future AI/backend team can replace the mock implementation behind the existing `AgentService` abstraction. This frontend does not include backend URLs, API calls, or a backend client.
 
-  This package is not responsible for:
+## Known Limitations
 
-  - Chrome extension manifest
-  - Side-panel registration
-  - Popup registration
-  - Content scripts
-  - DOM automation
-  - Browser tab interaction
-  - Job website interaction
+These are intentional project boundaries:
 
-  Those responsibilities belong to `extension/`.
+- Speech recognition depends on browser support and microphone permission.
+- Agent responses are mocked.
+- Browser automation is not implemented.
+- Chrome extension packaging is not implemented here.
+- History is currently a placeholder.
+- Accessibility preferences are session-only.
+- Backend and AI integration are not connected.
 
-  ## Backend Integration Boundary
+## Demo Flow
 
-  The future AI/backend team can replace the mock implementation behind the existing `AgentService` abstraction. This frontend does not include backend URLs, API calls, or a backend client.
+1. Open AccessApply.
+2. Select **Guide me**.
+3. Enter `Read the requirements of this job.` or use Voice command.
+4. Show **Processing** and the mock requirements response.
+5. Show **Action completed** and the transcript.
+6. Press **Play** to demonstrate browser text-to-speech.
+7. Say `Go to Accessibility` to open preferences.
+8. Toggle Captions, Voice commands, or Speak focused controls.
+9. Return to **Assistant** and use a voice or typed command.
 
-  ## Known Limitations
+## Development Boundaries
 
-  These are intentional project boundaries, not bugs:
+Changes for this package should remain inside:
 
-  - Voice commands depend on browser speech-recognition support.
-  - Agent responses are mocked.
-  - Browser automation is not implemented.
-  - Chrome extension packaging is not implemented here.
-  - History is currently a placeholder.
-  - Accessibility preferences are session-only.
-  - Backend and AI integration are not connected.
+```text
+accessibility-ui/
+```
 
-  ## Demo Flow
-
-  1. Open AccessApply.
-  2. Select **Guide me**.
-  3. Enter `Read the requirements of this job.`
-  4. Submit the command.
-  5. Show **Processing**.
-  6. Show the mock requirements response.
-  7. Show **Action completed**.
-  8. Show the transcript.
-  9. Press **Play**.
-  10. Demonstrate browser text-to-speech.
-  11. Open **Accessibility**.
-  12. Toggle Captions or Voice commands.
-  13. Return to **Assistant**.
-
-  ## Development Boundaries
-
-  Changes for this package should remain inside:
-
-  ```text
-  accessibility-ui/
-  ```
-
-  Do not modify `profile-ui/`, `backend/`, `extension/`, or `shared/types/` unless the team explicitly agrees to a future integration change.
+Do not modify `profile-ui/`, `backend/`, `extension/`, or `shared/types/` unless the team explicitly agrees to a future integration change.

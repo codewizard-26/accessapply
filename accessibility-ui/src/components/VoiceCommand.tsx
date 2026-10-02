@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSpokenFocus } from '../hooks/useSpokenFocus'
 import type { VoiceState } from '../types/agent'
 
 type SpeechRecognitionResultLike = {
@@ -42,6 +43,8 @@ type VoiceCommandProps = {
   onRetry: () => void
   onCommand: (command: string) => void | Promise<void>
   onStateChange: (state: VoiceState) => void
+  speakFocusedControls?: boolean
+  readContentAloud?: boolean
   disabled?: boolean
 }
 
@@ -60,17 +63,25 @@ function getRecognitionConstructor() {
   return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
 }
 
-export function VoiceCommand({ state, onRetry, onCommand, onStateChange, disabled = false }: VoiceCommandProps) {
+export function VoiceCommand({ state, onRetry, onCommand, onStateChange, speakFocusedControls = false, readContentAloud = true, disabled = false }: VoiceCommandProps) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const stateRef = useRef<VoiceState>(state)
   const mountedRef = useRef(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const { announce, getFocusProps } = useSpokenFocus(speakFocusedControls)
   const recognitionConstructor = typeof window === 'undefined' ? undefined : getRecognitionConstructor()
   const supported = Boolean(recognitionConstructor)
 
   useEffect(() => {
     stateRef.current = state
   }, [state])
+
+  useEffect(() => {
+    if (!readContentAloud) return
+    if (state === 'listening') announce('Listening. Speak your command.', true)
+    if (state === 'processing') announce('Processing command.', true)
+    if (state === 'error') announce(errorMessage || stateLabels.error, true)
+  }, [announce, errorMessage, readContentAloud, state])
 
   useEffect(() => {
     mountedRef.current = true
@@ -165,28 +176,28 @@ export function VoiceCommand({ state, onRetry, onCommand, onStateChange, disable
   }
 
   if (disabled) {
-    return <button className="secondary-button" type="button" disabled aria-label="Voice commands are disabled">Voice commands disabled</button>
+    return <button {...getFocusProps('Voice commands disabled. Enable Voice commands in Accessibility to use this control.')} data-voice-description="Voice commands disabled. Enable Voice commands in Accessibility to use this control." title="Voice commands are disabled" className="secondary-button" type="button" disabled aria-label="Voice commands are disabled">Voice commands disabled</button>
   }
 
   if (!supported) {
-    return <div className="voice-error" role="status"><span>{stateLabels.unsupported} You can continue using typed commands.</span><button className="tertiary-button" type="button" disabled>Voice unavailable</button></div>
+    return <div className="voice-error" role="status"><span>{stateLabels.unsupported} You can continue using typed commands.</span><button {...getFocusProps('Voice unavailable.')} data-voice-description="Voice unavailable. Continue using typed commands." title="Voice recognition is unavailable" className="tertiary-button" type="button" disabled>Voice unavailable</button></div>
   }
 
   if (state === 'error') {
     return (
       <div className="voice-error" role="alert" aria-live="assertive">
         <span>{errorMessage || stateLabels[state]}</span>
-        <button type="button" className="tertiary-button" onClick={() => { onRetry(); setErrorMessage('') }}>Try again</button>
+        <button {...getFocusProps('Try again button. Restarts voice recognition.')} data-voice-description="Try again button. Restarts voice recognition." title="Try voice recognition again" type="button" className="tertiary-button" onClick={() => { onRetry(); setErrorMessage('') }}>Try again</button>
       </div>
     )
   }
 
   return (
     <div className="voice-actions">
-      <button className="secondary-button" type="button" onClick={startRecognition} disabled={state !== 'idle'} aria-label={stateLabels[state]}>
+      <button {...getFocusProps('Voice command button. Press to start listening.')} data-voice-description="Voice command button. Press to start listening." title="Start voice command listening" className="secondary-button" type="button" onClick={startRecognition} disabled={state !== 'idle'} aria-label={stateLabels[state]}>
         {stateLabels[state]}
       </button>
-      {state === 'listening' && <button type="button" className="tertiary-button" onClick={stopRecognition}>Stop listening</button>}
+      {state === 'listening' && <button {...getFocusProps('Stop listening button. Stops voice recognition.')} data-voice-description="Stop listening button. Stops voice recognition." title="Stop listening" type="button" className="tertiary-button" onClick={stopRecognition}>Stop listening</button>}
     </div>
   )
 }

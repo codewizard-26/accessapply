@@ -7,6 +7,7 @@ export type AccessibilityPreferences = {
   keyboardFirstNavigation: boolean
   stepByStepGuidance: boolean
   reducedVisualClutter: boolean
+  speakFocusedControls: boolean
 }
 
 export type AccessibilityPreferenceKey = keyof AccessibilityPreferences

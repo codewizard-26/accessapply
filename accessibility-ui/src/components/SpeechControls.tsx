@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSpokenFocus } from '../hooks/useSpokenFocus'
 import type { SpeechState } from '../types/agent'
 
 type SpeechControlsProps = {
   message: string
   onStateChange?: (state: SpeechState) => void
+  speakFocusedControls?: boolean
+  enabled?: boolean
 }
 
 type SpeechUiState = SpeechState | 'unavailable' | 'error'
@@ -21,11 +24,12 @@ function supportsSpeechSynthesis() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined'
 }
 
-export function SpeechControls({ message, onStateChange }: SpeechControlsProps) {
+export function SpeechControls({ message, onStateChange, speakFocusedControls = false, enabled = true }: SpeechControlsProps) {
   const [state, setState] = useState<SpeechUiState>(() => supportsSpeechSynthesis() ? 'ready' : 'unavailable')
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null)
   const activeMessageRef = useRef<string | null>(null)
+  const { getFocusProps } = useSpokenFocus(speakFocusedControls)
 
   const updateState = (nextState: SpeechUiState) => {
     setState(nextState)
@@ -102,6 +106,10 @@ export function SpeechControls({ message, onStateChange }: SpeechControlsProps) 
   }
 
   useEffect(() => {
+    if (!enabled) {
+      speechSynthesisRef.current?.cancel()
+      speechSynthesisRef.current = null
+    }
     speechSynthesisRef.current = null
 
     return () => {
@@ -111,25 +119,26 @@ export function SpeechControls({ message, onStateChange }: SpeechControlsProps) 
         window.speechSynthesis.cancel()
       }
     }
-  }, [message])
+  }, [enabled, message])
 
   const speechAvailable = supportsSpeechSynthesis()
-  const canStop = state !== 'ready' && state !== 'stopped' && state !== 'unavailable' && state !== 'error'
+  const visibleState = enabled ? state : 'stopped'
+  const canStop = visibleState !== 'ready' && visibleState !== 'stopped' && visibleState !== 'unavailable' && visibleState !== 'error'
 
   return (
     <div className="speech-controls" aria-label="Read response aloud">
-      <span className="speech-status" aria-live="polite" role={state === 'error' || state === 'unavailable' ? 'alert' : undefined}>{stateLabels[state]}</span>
+      <span className="speech-status" aria-live="polite" role={visibleState === 'error' || visibleState === 'unavailable' ? 'alert' : undefined}>{enabled ? stateLabels[state] : 'Read content aloud is disabled.'}</span>
       <div className="speech-actions">
-        <button type="button" className="tertiary-button" onClick={speak} disabled={!message || !speechAvailable || state === 'speaking'}>
-          {state === 'paused' ? 'Resume' : 'Play'}
+        <button {...getFocusProps(visibleState === 'paused' ? 'Resume button. Continues reading the response.' : 'Play button. Reads the response aloud.')} data-voice-description={visibleState === 'paused' ? 'Resume button. Continues reading the response.' : 'Play button. Reads the response aloud.'} title={visibleState === 'paused' ? 'Resume reading aloud' : 'Read response aloud'} type="button" className="tertiary-button" onClick={speak} disabled={!enabled || !message || !speechAvailable || visibleState === 'speaking'}>
+          {visibleState === 'paused' ? 'Resume' : 'Play'}
         </button>
-        <button type="button" className="tertiary-button" onClick={pause} disabled={state !== 'speaking'}>
+        <button {...getFocusProps('Pause button. Pauses reading aloud.')} data-voice-description="Pause button. Pauses reading aloud." title="Pause reading aloud" type="button" className="tertiary-button" onClick={pause} disabled={!enabled || visibleState !== 'speaking'}>
           Pause
         </button>
-        <button type="button" className="tertiary-button" onClick={stop} disabled={!canStop}>
+        <button {...getFocusProps('Stop button. Stops reading aloud.')} data-voice-description="Stop button. Stops reading aloud." title="Stop reading aloud" type="button" className="tertiary-button" onClick={stop} disabled={!enabled || !canStop}>
           Stop
         </button>
-        <button type="button" className="tertiary-button" onClick={speak} disabled={!message || !speechAvailable}>
+        <button {...getFocusProps('Replay button. Reads the response from the beginning.')} data-voice-description="Replay button. Reads the response from the beginning." title="Replay response aloud" type="button" className="tertiary-button" onClick={speak} disabled={!enabled || !message || !speechAvailable}>
           Replay
         </button>
       </div>
