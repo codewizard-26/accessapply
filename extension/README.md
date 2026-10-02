@@ -12,6 +12,22 @@ backend; this extension only orchestrates on the browser side.
 
 Dev dependencies: `typescript`, `esbuild`, `@types/chrome`.
 
+Optional: `playwright-core` powers `npm run test:browser` and
+`npm run test:extension`. It drives the Chrome/Chromium already installed on
+your machine and downloads no browser binaries by itself — it is safe to skip.
+
+`npm run test:extension` loads the real unpacked `dist/` and therefore needs a
+browser that still honours `--load-extension`. Branded Chrome 137+ refuses to
+load unpacked extensions under automation, so install Playwright's own Chromium
+once:
+
+```powershell
+npx playwright install chromium
+```
+
+If neither a compatible browser nor `playwright-core` is present both scripts
+exit 0 with a `[skip]` note, so they are safe to leave in CI.
+
 ```powershell
 cd extension
 npm install
@@ -213,14 +229,52 @@ WAIT FOR PAGE UPDATE -> READ AGAIN
 ## Tests
 
 ```powershell
-npm test   # node --test scripts/smoke-test.mjs
+npm test               # node --test scripts/smoke-test.mjs
+npm run test:browser   # scanner + actions in a real DOM (real Chrome)
+npm run test:extension # the real unpacked extension in Chromium
 ```
 
-Covers action validation, URL policy, settings clamping, wire
-sanitisation and all mock scenarios (including simulated failures).
-Browser-dependent code (scanner/actions) is exercised against
-`test-page/`; `scripts/verify-scanner.mjs` automates that in a headless
-browser if you have Playwright's Chromium installed.
+`npm test` runs with no browser and covers action validation, URL policy,
+settings clamping, wire sanitisation, the job work-mode heuristic and all
+mock scenarios (including simulated failures).
+
+`npm run test:browser` bundles `src/dom-testable.ts` (the real scanner and
+action executor) with esbuild, launches your installed Chrome through
+`playwright-core`, loads `test-page/index.html`, and asserts 30+ behaviours:
+
+- headings, buttons (including an `aria-label`-only button), links, inputs,
+  textareas and selects are captured with labels, placeholders, `required`
+  and `disabled` state;
+- hidden content is never scanned and password values are never captured;
+- job title, work mode, employment type and requirements are extracted;
+- the full loop runs with mock actions: `type` -> re-read shows the value,
+  `click` -> re-read shows the updated status text, `scroll` -> page moves;
+- every failure path returns a structured error instead of throwing
+  (`INVALID_TARGET`, `TARGET_DISABLED`, `TARGET_NOT_EDITABLE`,
+  `TARGET_DETACHED`, blocked `javascript:` URLs).
+
+It exits 0 with a `[skip]` note when Chrome or `playwright-core` is missing,
+so it is safe to include in CI on machines without a browser. Set
+`CHROME_PATH` to point at a specific binary.
+
+`npm run test:extension` goes one level deeper: it builds `dist/`, launches
+Chromium with the **real unpacked extension**, serves `test-page/` over
+`http://127.0.0.1` so the manifest's `content_scripts` match, and then drives
+the shipped code through Chrome's own message channel. It asserts that:
+
+- the MV3 service worker starts and the manifest auto-injects `content.js`
+  (no manual injection);
+- the shipped content script scans the page correctly;
+- a mock action sent to the background runs in the page and a re-scan sees
+  the change (the full READ -> SEND -> VALIDATE -> EXECUTE -> READ flow);
+- an unknown target and a `javascript:` URL come back as structured errors;
+- `START_LOOP` with `mockScenario: "auto"` runs the whole agent loop to
+  completion, respects the iteration cap and leaves the iteration log
+  visible to the popup.
+
+This test found and now guards a real bug: the old health-check listener
+answered *every* runtime message, which silently hijacked all popup
+responses in mock mode.
 
 ## Current limitations
 
@@ -235,5 +289,7 @@ browser if you have Playwright's Chromium installed.
   tab `complete` check.
 - The popup is a test harness, not the accessibility interface (that is
   the React app owned by another module).
+- Automated scanner/action coverage runs against `test-page/` only; heavily
+  scripted real-world sites may hit code paths that page does not exercise.
 - Not yet verified end-to-end against a real backend; use mock mode until
   the contract above is implemented.
