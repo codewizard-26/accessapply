@@ -2,7 +2,7 @@
 // tsc alone cannot produce this: content scripts and MV3 service workers must be
 // single classic scripts (no import statements in the page context).
 import { build } from "esbuild";
-import { cp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, rm, readFile, writeFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,7 +19,9 @@ const common = {
   platform: "browser",
   sourcemap: false,
   minify: !watch,
-  logLevel: "info",
+  // "info" makes esbuild write its timing summary to stderr, which PowerShell
+  // surfaces as a scary NativeCommandError even on a successful build.
+  logLevel: "warning",
   legalComments: "none",
   define: { __DEV__: String(watch) },
 };
@@ -31,6 +33,8 @@ async function bundle(entry, outfile, extra = {}) {
     entryPoints: [path.join(root, entry)],
     outfile: path.join(dist, outfile),
   });
+  const { size } = await stat(path.join(dist, outfile));
+  console.log(`bundled  ${outfile}  (${(size / 1024).toFixed(1)} kb)`);
 }
 
 async function copyStatic() {
