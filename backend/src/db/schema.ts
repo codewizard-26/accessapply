@@ -1,6 +1,11 @@
 import { pgTable, text, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
 import crypto from "node:crypto";
-import type { AccessibilityPreferences, UserProfile } from "../../../shared/types/index.js";
+import type {
+  AccessibilityPreferences,
+  AgentAction,
+  PageContext,
+  UserProfile,
+} from "../../../shared/types/index.js";
 
 /**
  * PostgreSQL schema for AccessApply users.
@@ -71,6 +76,77 @@ export const userProfiles = pgTable("user_profiles", {
 
 export type UserProfileRow = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = typeof userProfiles.$inferInsert;
+
+/**
+ * Interface representing an agent task/session.
+ */
+export interface AgentTask {
+  id: string;
+  userId: string;
+  command: string;
+  status: "running" | "waiting_for_user" | "completed" | "failed";
+  currentUrl?: string | undefined;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Item in the agent task execution history.
+ */
+export interface TaskHistoryItem {
+  turn: number;
+  timestamp: string;
+  action?: AgentAction | undefined;
+  userQuestion?: string | undefined;
+  userAnswer?: string | undefined;
+  pageUrl?: string | undefined;
+  pageTitle?: string | undefined;
+}
+
+/**
+ * PostgreSQL schema for persisting multi-step agent tasks in Neon database.
+ */
+export const agentTasks = pgTable("agent_tasks", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  command: text("command").notNull(),
+  status: text("status")
+    .$type<"running" | "waiting_for_user" | "completed" | "failed">()
+    .notNull()
+    .default("running"),
+  currentUrl: text("current_url"),
+  lastPageContext: jsonb("last_page_context").$type<PageContext>(),
+  history: jsonb("history").$type<TaskHistoryItem[]>().default([]).notNull(),
+  lastAction: jsonb("last_action").$type<AgentAction>(),
+  lastQuestion: text("last_question"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type AgentTaskRow = typeof agentTasks.$inferSelect;
+export type InsertAgentTask = typeof agentTasks.$inferInsert;
+
+/**
+ * Converts a database row to the AgentTask interface.
+ */
+export function rowToAgentTask(row: AgentTaskRow): AgentTask {
+  const task: AgentTask = {
+    id: row.id,
+    userId: row.userId,
+    command: row.command,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+  if (row.currentUrl) {
+    task.currentUrl = row.currentUrl;
+  }
+  return task;
+}
 
 /**
  * Converts a database row into the shared UserProfile TypeScript contract.

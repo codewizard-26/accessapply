@@ -121,6 +121,18 @@ function isValidAgentAction(action: any): action is AgentAction {
   }
 }
 
+let mockActionGenerator: ((prompt: string) => Promise<AgentAction>) | null = null;
+
+/**
+ * Test utility to set a custom mock generator for AgentActions.
+ * Pass null to restore real Gemini API execution.
+ */
+export function setMockActionGenerator(
+  mock: ((prompt: string) => Promise<AgentAction>) | null
+): void {
+  mockActionGenerator = mock;
+}
+
 /**
  * Sends a prompt to the Gemini API and returns a structured AgentAction.
  *
@@ -128,6 +140,16 @@ function isValidAgentAction(action: any): action is AgentAction {
  * @returns The structured AgentAction selected by Gemini.
  */
 export async function generateAgentAction(prompt: string): Promise<AgentAction> {
+  if (mockActionGenerator) {
+    const mocked = await mockActionGenerator(prompt);
+    if (!isValidAgentAction(mocked)) {
+      throw new Error(
+        `Invalid AgentAction structure received: ${JSON.stringify(mocked)}`
+      );
+    }
+    return mocked;
+  }
+
   const ai = getGeminiClient();
 
   const response = await ai.models.generateContent({
