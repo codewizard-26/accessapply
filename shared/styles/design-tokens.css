@@ -1,0 +1,21 @@
+:root {
+  --color-ink: #1f2a3d;
+  --color-teal: #275d73;
+  --color-teal-dark: #1f4c60;
+  --color-coral: #e56b4a;
+  --color-error: #a33f2c;
+  --color-paper: #fffaf3;
+  --color-page: #edf0f3;
+  --color-soft-blue: #e7eef2;
+  --color-muted: #536273;
+  --color-subtle: #687586;
+  --color-border: #d9dfe4;
+  --color-border-strong: #aebbc8;
+  --color-status: #f4c762;
+  --color-eyebrow: #f4c7a9;
+  --font-body: 'Avenir Next', 'Trebuchet MS', sans-serif;
+  --font-heading: 'Palatino Linotype', Baskerville, serif;
+  --radius-control: 4px;
+  --radius-panel: 5px;
+  --focus-ring: 3px solid var(--color-coral);
+}
