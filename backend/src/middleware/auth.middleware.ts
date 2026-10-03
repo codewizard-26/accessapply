@@ -30,6 +30,7 @@ export async function requireAuth(
 
   if (!sessionId) {
     res.status(401).json({
+      success: false,
       authenticated: false,
       error: "Authentication required. Please log in or register.",
     });
@@ -39,6 +40,7 @@ export async function requireAuth(
   const result = await validateSession(sessionId);
   if (!result) {
     res.status(401).json({
+      success: false,
       authenticated: false,
       error: "Invalid or expired session. Please log in again.",
     });

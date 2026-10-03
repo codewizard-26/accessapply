@@ -152,6 +152,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
 
   if (!sessionId) {
     res.status(401).json({
+      success: false,
       authenticated: false,
       error: "No active session found.",
     });
@@ -163,6 +164,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     if (!result) {
       clearSessionCookie(res);
       res.status(401).json({
+        success: false,
         authenticated: false,
         error: "Session is invalid or has expired.",
       });
@@ -180,6 +182,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to verify session";
     res.status(500).json({
+      success: false,
       authenticated: false,
       error: errorMessage,
     });

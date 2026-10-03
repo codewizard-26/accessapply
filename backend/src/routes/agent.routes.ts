@@ -82,6 +82,9 @@ agentRouter.post(
       const errorMessage =
         error instanceof Error ? error.message : "Failed to start agent task";
       const isValidationError = errorMessage.startsWith("Invalid agent target");
+      if (!isValidationError) {
+        console.error(`[Agent] Start task failed (user: ${userId}):`, errorMessage);
+      }
       res.status(isValidationError ? 400 : 500).json({
         success: false,
         error: errorMessage,
@@ -155,6 +158,12 @@ agentRouter.post(
       const errorMessage =
         error instanceof Error ? error.message : "Failed to continue agent task";
       const isValidationError = errorMessage.startsWith("Invalid agent target");
+      if (!isValidationError) {
+        console.error(
+          `[Agent] Continue task failed (task: ${taskId}, user: ${userId}):`,
+          errorMessage
+        );
+      }
       res.status(isValidationError ? 400 : 500).json({
         success: false,
         error: errorMessage,
@@ -230,6 +239,12 @@ agentRouter.post(
       const errorMessage =
         error instanceof Error ? error.message : "Failed to respond to agent task";
       const isValidationError = errorMessage.startsWith("Invalid agent target");
+      if (!isValidationError) {
+        console.error(
+          `[Agent] Respond task failed (task: ${taskId}, user: ${userId}):`,
+          errorMessage
+        );
+      }
       res.status(isValidationError ? 400 : 500).json({
         success: false,
         error: errorMessage,

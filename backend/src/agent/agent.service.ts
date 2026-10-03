@@ -70,7 +70,8 @@ export function buildAgentPrompt(
 
   let historySection = "";
   if (history && history.length > 0) {
-    const historyLines = history.map((item) => {
+    const recentHistory = history.length > 10 ? history.slice(-10) : history;
+    const historyLines = recentHistory.map((item) => {
       let desc = `- Turn ${item.turn}:`;
       if (item.action) {
         desc += ` Action executed -> ${JSON.stringify(item.action)}`;
