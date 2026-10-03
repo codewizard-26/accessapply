@@ -16,7 +16,7 @@ export function AccessibilitySetting({ setting, label, description, checked, onC
   const voiceDescription = `${label}. Checkbox. Currently ${checked ? 'enabled' : 'disabled'}. ${description}`
 
   return (
-    <label className="accessibility-setting" title={`${description} Currently ${checked ? 'enabled' : 'disabled'}.`}>
+    <label className="accessibility-setting ui-card" title={`${description} Currently ${checked ? 'enabled' : 'disabled'}.`}>
       <span className="setting-copy">
         <strong>{label}</strong>
         <small>{description}</small>

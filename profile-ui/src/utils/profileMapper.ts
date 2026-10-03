@@ -1,5 +1,5 @@
-import type { UserProfile } from '../types/profile'
 import type { ApplicationField } from '../types/application'
+import type { UserProfile } from '../../../shared/types/profile'
 
 export function getProfileValueForField(profile: UserProfile, fieldId: string): string | undefined {
   switch (fieldId) {
@@ -11,16 +11,11 @@ export function getProfileValueForField(profile: UserProfile, fieldId: string): 
       return profile.phone?.trim() || undefined
     case 'location':
       return profile.location?.trim() || undefined
-    case 'yearsOfExperience':
-      if (!profile.experience?.length) {
-        return undefined
-      }
-      return profile.experience.length > 1 ? '2 years' : '1 year'
     case 'skills':
       return profile.skills?.length ? profile.skills.join(', ') : undefined
     case 'education':
       return profile.education?.length
-        ? profile.education.map((item) => `${item.degree} in ${item.field || item.degree} at ${item.institution}`).join(' | ')
+        ? profile.education.map((item) => `${item.degree}${item.field ? ` in ${item.field}` : ''} at ${item.institution}`).join(' | ')
         : undefined
     case 'github':
       return profile.github?.trim() || undefined

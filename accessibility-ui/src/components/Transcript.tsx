@@ -8,7 +8,7 @@ export function Transcript({ entries }: TranscriptProps) {
   if (entries.length === 0) return null
 
   return (
-    <section className="transcript-panel" aria-labelledby="transcript-title">
+    <section className="transcript-panel ui-card" aria-labelledby="transcript-title">
       <div className="panel-heading">
         <div>
           <p className="section-kicker">Captions</p>

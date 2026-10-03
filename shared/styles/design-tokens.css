@@ -13,9 +13,11 @@
   --color-border-strong: #aebbc8;
   --color-status: #f4c762;
   --color-eyebrow: #f4c7a9;
+  --color-overlay: rgb(31 42 61 / 72%);
   --font-body: 'Avenir Next', 'Trebuchet MS', sans-serif;
   --font-heading: 'Palatino Linotype', Baskerville, serif;
   --radius-control: 4px;
   --radius-panel: 5px;
+  --shadow-card: 0 8px 24px rgb(104 117 134 / 7%);
   --focus-ring: 3px solid var(--color-coral);
 }
