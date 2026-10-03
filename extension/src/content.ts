@@ -14,6 +14,7 @@ import {
   readPage,
   waitForPageSettle,
 } from "./actions.js";
+import { initOverlay, updateOverlay } from "./overlay.js";
 import { validateAction } from "./validate.js";
 import type {
   ActionResult,
@@ -77,6 +78,11 @@ chrome.runtime.onMessage.addListener(
           });
           return undefined;
         }
+        case "UPDATE_OVERLAY": {
+          updateOverlay(message.state);
+          sendResponse({ ok: true });
+          return undefined;
+        }
         default: {
           sendResponse({
             ok: false,
@@ -118,3 +124,10 @@ void chrome.storage.local.get(SETTINGS_KEY).then((items) => {
 window.addEventListener("pageshow", () => {
   void waitForPageSettle(0);
 });
+
+// Initialize in-page AccessApply overlay
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => initOverlay());
+} else {
+  initOverlay();
+}

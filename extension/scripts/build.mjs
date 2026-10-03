@@ -59,6 +59,21 @@ async function copyStatic() {
       path.join(dist, "popup.css"),
     );
   }
+
+  const profileUiDist = path.join(root, "..", "profile-ui", "dist");
+  if (existsSync(profileUiDist)) {
+    await cp(profileUiDist, path.join(dist, "profile-ui"), { recursive: true });
+  }
+
+  const accessUiDist = path.join(root, "..", "accessibility-ui", "dist");
+  if (existsSync(accessUiDist)) {
+    await cp(accessUiDist, path.join(dist, "accessibility-ui"), { recursive: true });
+  }
+
+  const sharedDir = path.join(root, "..", "shared");
+  if (existsSync(sharedDir)) {
+    await cp(sharedDir, path.join(dist, "shared"), { recursive: true });
+  }
 }
 
 async function main() {

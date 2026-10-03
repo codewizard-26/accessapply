@@ -40,6 +40,11 @@ const emptyProfile: UserProfile = {
     highContrast: false,
     reducedMotion: false,
     largeText: false,
+    voiceEnabled: false,
+    textToSpeechEnabled: false,
+    simplifiedText: false,
+    keyboardNavigation: false,
+    assistanceLevel: 'assist',
   },
 }
 
@@ -264,7 +269,7 @@ function App() {
   }
 
   const openPersonalEdit = () => {
-    setPersonalDraft({ name: profile.name, email: profile.email, phone: profile.phone, location: profile.location })
+    setPersonalDraft({ name: profile.name, email: profile.email, phone: profile.phone ?? '', location: profile.location ?? '' })
     setFormError('')
     setEditMode('personal')
   }
@@ -315,7 +320,7 @@ function App() {
     }
 
     const education: Education = { ...educationDraft, id: editingId ?? `edu-${Date.now()}` }
-    setProfile((current) => ({ ...current, education: editingId ? current.education.map((item) => item.id === editingId ? education : item) : [...current.education, education] }))
+    setProfile((current) => ({ ...current, education: editingId ? (current.education ?? []).map((item) => item.id === editingId ? education : item) : [...(current.education ?? []), education] }))
     setEditMode(null)
     showNotice('Education updated. Save your profile to keep these changes.')
   }
@@ -335,7 +340,7 @@ function App() {
     }
 
     const experience: Experience = { ...experienceDraft, id: editingId ?? `exp-${Date.now()}` }
-    setProfile((current) => ({ ...current, experience: editingId ? current.experience.map((item) => item.id === editingId ? experience : item) : [...current.experience, experience] }))
+    setProfile((current) => ({ ...current, experience: editingId ? (current.experience ?? []).map((item) => item.id === editingId ? experience : item) : [...(current.experience ?? []), experience] }))
     setEditMode(null)
     showNotice('Experience updated. Save your profile to keep these changes.')
   }
@@ -356,7 +361,22 @@ function App() {
   }
 
   const updatePreference = (key: keyof AccessibilityPreferences) => {
-    setProfile((current) => ({ ...current, accessibilityPreferences: { ...current.accessibilityPreferences, [key]: !current.accessibilityPreferences[key] } }))
+    setProfile((current) => {
+      const prefs = current.accessibilityPreferences ?? {
+        voiceEnabled: false,
+        textToSpeechEnabled: false,
+        simplifiedText: false,
+        keyboardNavigation: false,
+        assistanceLevel: 'assist',
+        highContrast: false,
+        reducedMotion: false,
+        largeText: false,
+      }
+      return {
+        ...current,
+        accessibilityPreferences: { ...prefs, [key]: !prefs[key] },
+      }
+    })
     showNotice('Accessibility preference updated. Save your profile to keep this change.')
   }
 
@@ -661,11 +681,11 @@ function App() {
             </Section>
 
             <Section title="Education" description="Your academic background." action={<button type="button" className="secondary-button" onClick={() => openEducationEdit()}>Add education</button>}>
-              {profile.education.length ? profile.education.map((education) => <article className="item-row" key={education.id}><div><h3>{education.degree} — {education.field}</h3><p>{education.institution}</p><span>{education.startYear} — {education.endYear ?? 'Present'}</span></div><div className="item-actions"><button type="button" className="text-button" onClick={() => openEducationEdit(education)}>Edit</button><button type="button" className="text-button danger" onClick={() => { setProfile((current) => ({ ...current, education: current.education.filter((item) => item.id !== education.id) })); showNotice('Education removed.') }}>Delete</button></div></article>) : <EmptyState label="No education added yet." action="Add education" onClick={() => openEducationEdit()} />}
+              {(profile.education ?? []).length ? (profile.education ?? []).map((education) => <article className="item-row" key={education.id}><div><h3>{education.degree} — {education.field}</h3><p>{education.institution}</p><span>{education.startYear} — {education.endYear ?? 'Present'}</span></div><div className="item-actions"><button type="button" className="text-button" onClick={() => openEducationEdit(education)}>Edit</button><button type="button" className="text-button danger" onClick={() => { setProfile((current) => ({ ...current, education: (current.education ?? []).filter((item) => item.id !== education.id) })); showNotice('Education removed.') }}>Delete</button></div></article>) : <EmptyState label="No education added yet." action="Add education" onClick={() => openEducationEdit()} />}
             </Section>
 
             <Section title="Experience" description="Your professional experience." action={<button type="button" className="secondary-button" onClick={() => openExperienceEdit()}>Add experience</button>}>
-              {profile.experience.length ? profile.experience.map((experience) => <article className="item-row" key={experience.id}><div><h3>{experience.role}</h3><p>{experience.company}</p><span>{experience.startDate || 'Start date'} — {experience.endDate || 'Present'}</span><p className="item-description">{experience.description}</p></div><div className="item-actions"><button type="button" className="text-button" onClick={() => openExperienceEdit(experience)}>Edit</button><button type="button" className="text-button danger" onClick={() => { setProfile((current) => ({ ...current, experience: current.experience.filter((item) => item.id !== experience.id) })); showNotice('Experience removed.') }}>Delete</button></div></article>) : <EmptyState label="No experience added yet." action="Add experience" onClick={() => openExperienceEdit()} />}
+              {(profile.experience ?? []).length ? (profile.experience ?? []).map((experience) => <article className="item-row" key={experience.id}><div><h3>{experience.role}</h3><p>{experience.company}</p><span>{experience.startDate || 'Start date'} — {experience.endDate || 'Present'}</span><p className="item-description">{experience.description}</p></div><div className="item-actions"><button type="button" className="text-button" onClick={() => openExperienceEdit(experience)}>Edit</button><button type="button" className="text-button danger" onClick={() => { setProfile((current) => ({ ...current, experience: (current.experience ?? []).filter((item) => item.id !== experience.id) })); showNotice('Experience removed.') }}>Delete</button></div></article>) : <EmptyState label="No experience added yet." action="Add experience" onClick={() => openExperienceEdit()} />}
             </Section>
 
             <Section title="Resume" description="Keep a current resume available for applications.">
@@ -678,14 +698,14 @@ function App() {
             </Section>
 
             <Section title="Accessibility preferences" description="Save the settings that help you work comfortably.">
-              <div className="preference-list">{([['highContrast', 'High contrast', 'Increase contrast for easier reading.'], ['reducedMotion', 'Reduced motion', 'Reduce non-essential movement.'], ['largeText', 'Large text', 'Use larger text where supported.']] as Array<[keyof AccessibilityPreferences, string, string]>).map(([key, label, description]) => <label className="preference-row ui-card" key={key}><span><strong>{label}</strong><small>{description}</small></span><span className="setting-control"><input type="checkbox" checked={profile.accessibilityPreferences[key]} onChange={() => updatePreference(key)} /><span>{profile.accessibilityPreferences[key] ? 'On' : 'Off'}</span></span></label>)}</div>
+              <div className="preference-list">{([['highContrast', 'High contrast', 'Increase contrast for easier reading.'], ['reducedMotion', 'Reduced motion', 'Reduce non-essential movement.'], ['largeText', 'Large text', 'Use larger text where supported.']] as const).map(([key, label, description]) => <label className="preference-row ui-card" key={key}><span><strong>{label}</strong><small>{description}</small></span><span className="setting-control"><input type="checkbox" checked={Boolean(profile.accessibilityPreferences?.[key])} onChange={() => updatePreference(key)} /><span>{profile.accessibilityPreferences?.[key] ? 'On' : 'Off'}</span></span></label>)}</div>
             </Section>
           </main>
 
           {editMode === 'personal' && <Modal title="Edit personal information" onClose={() => setEditMode(null)}><form className="modal-form" onSubmit={savePersonal}><Field label="Full name" value={personalDraft.name} onChange={(value) => setPersonalDraft({ ...personalDraft, name: value })} required /><Field label="Email" type="email" value={personalDraft.email} onChange={(value) => setPersonalDraft({ ...personalDraft, email: value })} required /><Field label="Phone" value={personalDraft.phone} onChange={(value) => setPersonalDraft({ ...personalDraft, phone: value })} /><Field label="Location" value={personalDraft.location} onChange={(value) => setPersonalDraft({ ...personalDraft, location: value })} /><ModalActions onCancel={() => setEditMode(null)} />{formError && <p className="form-error" role="alert">{formError}</p>}</form></Modal>}
           {editMode === 'links' && <Modal title="Edit social links" onClose={() => setEditMode(null)}><form className="modal-form" onSubmit={saveLinks}><Field label="GitHub URL" type="url" value={linksDraft.github} onChange={(value) => setLinksDraft({ ...linksDraft, github: value })} placeholder="https://github.com/username" /><Field label="LinkedIn URL" type="url" value={linksDraft.linkedin} onChange={(value) => setLinksDraft({ ...linksDraft, linkedin: value })} placeholder="https://linkedin.com/in/username" /><ModalActions onCancel={() => setEditMode(null)} />{formError && <p className="form-error" role="alert">{formError}</p>}</form></Modal>}
-          {editMode === 'education' && <Modal title={editingId ? 'Edit education' : 'Add education'} onClose={() => setEditMode(null)}><form className="modal-form" onSubmit={saveEducation}><Field label="Institution" value={educationDraft.institution} onChange={(value) => setEducationDraft({ ...educationDraft, institution: value })} required /><Field label="Degree" value={educationDraft.degree} onChange={(value) => setEducationDraft({ ...educationDraft, degree: value })} required /><Field label="Field of study" value={educationDraft.field} onChange={(value) => setEducationDraft({ ...educationDraft, field: value })} /><div className="two-fields"><Field label="Start year" type="number" value={String(educationDraft.startYear)} onChange={(value) => setEducationDraft({ ...educationDraft, startYear: Number(value) })} /><Field label="End year" type="number" value={educationDraft.endYear ? String(educationDraft.endYear) : ''} onChange={(value) => setEducationDraft({ ...educationDraft, endYear: value ? Number(value) : undefined })} /></div><ModalActions onCancel={() => setEditMode(null)} />{formError && <p className="form-error" role="alert">{formError}</p>}</form></Modal>}
-          {editMode === 'experience' && <Modal title={editingId ? 'Edit experience' : 'Add experience'} onClose={() => setEditMode(null)}><form className="modal-form" onSubmit={saveExperience}><Field label="Company" value={experienceDraft.company} onChange={(value) => setExperienceDraft({ ...experienceDraft, company: value })} required /><Field label="Role" value={experienceDraft.role} onChange={(value) => setExperienceDraft({ ...experienceDraft, role: value })} required /><label className="field"><span>Description</span><textarea value={experienceDraft.description} onChange={(event) => setExperienceDraft({ ...experienceDraft, description: event.target.value })} rows={4} /></label><div className="two-fields"><Field label="Start date" type="month" value={experienceDraft.startDate} onChange={(value) => setExperienceDraft({ ...experienceDraft, startDate: value })} /><Field label="End date" type="month" value={experienceDraft.endDate ?? ''} onChange={(value) => setExperienceDraft({ ...experienceDraft, endDate: value || undefined })} /></div><ModalActions onCancel={() => setEditMode(null)} />{formError && <p className="form-error" role="alert">{formError}</p>}</form></Modal>}
+          {editMode === 'education' && <Modal title={editingId ? 'Edit education' : 'Add education'} onClose={() => setEditMode(null)}><form className="modal-form" onSubmit={saveEducation}><Field label="Institution" value={educationDraft.institution} onChange={(value) => setEducationDraft({ ...educationDraft, institution: value })} required /><Field label="Degree" value={educationDraft.degree} onChange={(value) => setEducationDraft({ ...educationDraft, degree: value })} required /><Field label="Field of study" value={educationDraft.field ?? ''} onChange={(value) => setEducationDraft({ ...educationDraft, field: value })} /><div className="two-fields"><Field label="Start year" type="number" value={String(educationDraft.startYear)} onChange={(value) => setEducationDraft({ ...educationDraft, startYear: Number(value) })} /><Field label="End year" type="number" value={educationDraft.endYear ? String(educationDraft.endYear) : ''} onChange={(value) => setEducationDraft({ ...educationDraft, endYear: value ? Number(value) : undefined })} /></div><ModalActions onCancel={() => setEditMode(null)} />{formError && <p className="form-error" role="alert">{formError}</p>}</form></Modal>}
+          {editMode === 'experience' && <Modal title={editingId ? 'Edit experience' : 'Add experience'} onClose={() => setEditMode(null)}><form className="modal-form" onSubmit={saveExperience}><Field label="Company" value={experienceDraft.company} onChange={(value) => setExperienceDraft({ ...experienceDraft, company: value })} required /><Field label="Role" value={experienceDraft.role} onChange={(value) => setExperienceDraft({ ...experienceDraft, role: value })} required /><label className="field"><span>Description</span><textarea value={experienceDraft.description ?? ''} onChange={(event) => setExperienceDraft({ ...experienceDraft, description: event.target.value })} rows={4} /></label><div className="two-fields"><Field label="Start date" type="month" value={experienceDraft.startDate ?? ''} onChange={(value) => setExperienceDraft({ ...experienceDraft, startDate: value })} /><Field label="End date" type="month" value={experienceDraft.endDate ?? ''} onChange={(value) => setExperienceDraft({ ...experienceDraft, endDate: value || undefined })} /></div><ModalActions onCancel={() => setEditMode(null)} />{formError && <p className="form-error" role="alert">{formError}</p>}</form></Modal>}
         </>
       )}
 

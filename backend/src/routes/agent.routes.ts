@@ -21,14 +21,17 @@ agentRouter.use(requireAuth);
 interface StartTaskRequestBody {
   command: string;
   pageContext: PageContext;
+  userProfile?: UserProfile;
 }
 
 interface ContinueTaskRequestBody {
   pageContext: PageContext;
+  userProfile?: UserProfile;
 }
 
 interface RespondTaskRequestBody {
   answer: string;
+  userProfile?: UserProfile;
 }
 
 interface SingleActRequestBody {
@@ -48,7 +51,7 @@ interface SingleActRequestBody {
 agentRouter.post(
   "/tasks",
   async (req: Request<unknown, unknown, StartTaskRequestBody>, res: Response) => {
-    const { command, pageContext } = req.body;
+    const { command, pageContext, userProfile } = req.body;
     const userId = req.user!.id;
 
     if (!command || typeof command !== "string" || !command.trim()) {
@@ -68,7 +71,7 @@ agentRouter.post(
     }
 
     try {
-      const result = await startAgentTask(userId, command.trim(), pageContext);
+      const result = await startAgentTask(userId, command.trim(), pageContext, userProfile);
 
       res.status(201).json({
         success: true,
@@ -108,7 +111,7 @@ agentRouter.post(
     res: Response
   ) => {
     const { taskId } = req.params;
-    const { pageContext } = req.body;
+    const { pageContext, userProfile } = req.body;
     const userId = req.user!.id;
 
     if (!taskId) {
@@ -128,7 +131,7 @@ agentRouter.post(
     }
 
     try {
-      const result = await continueAgentTask(taskId, userId, pageContext);
+      const result = await continueAgentTask(taskId, userId, pageContext, userProfile);
 
       res.json({
         success: true,
@@ -183,7 +186,7 @@ agentRouter.post(
     res: Response
   ) => {
     const { taskId } = req.params;
-    const { answer } = req.body;
+    const { answer, userProfile } = req.body;
     const userId = req.user!.id;
 
     if (!taskId) {
@@ -203,7 +206,7 @@ agentRouter.post(
     }
 
     try {
-      const result = await respondToAgentTask(taskId, userId, answer.trim());
+      const result = await respondToAgentTask(taskId, userId, answer.trim(), userProfile);
 
       res.json({
         success: true,

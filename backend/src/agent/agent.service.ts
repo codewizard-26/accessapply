@@ -65,7 +65,16 @@ export function buildAgentPrompt(
       : "No interactive elements detected on this page.";
 
   const profileSection = userProfile
-    ? `\n### User Profile:\n${JSON.stringify(userProfile, null, 2)}\n`
+    ? `\n### User Profile (PRE-FILLED FACTUAL DATA - USE FOR APPLICATION FORM FIELDS):
+Name: ${userProfile.name}
+Email: ${userProfile.email}
+Phone: ${userProfile.phone || "Not specified"}
+Location: ${userProfile.location || "Not specified"}
+Skills: ${(userProfile.skills || []).join(", ") || "Not specified"}
+Resume URL: ${userProfile.resumeUrl || userProfile.resume || "Not specified"}
+LinkedIn: ${userProfile.linkedinUrl || userProfile.linkedin || userProfile.links?.linkedin || "Not specified"}
+GitHub: ${userProfile.githubUrl || userProfile.github || userProfile.links?.github || "Not specified"}
+Full Profile: ${JSON.stringify(userProfile, null, 2)}\n`
     : "\n### User Profile:\nNo user profile provided.\n";
 
   let historySection = "";
@@ -124,22 +133,42 @@ ${profileSection}
    - Use ONLY the elements listed in the "Available Page Elements" section when choosing a "target".
    - Identify the element by its 'id' attribute where available, or by its exact text / label / placeholder.
 
-3. Handling Missing or Sensitive Information:
-   - Do NOT guess or fabricate user details (such as phone numbers, addresses, SSN, salary expectations, or authorization).
-   - If required information is not present in the User Profile or prior user answers, issue an "ask_user" action with a concise, clear question.
+3. Form Filling & Profile Autofill:
+   - When encountering application form inputs (such as Name, Email, Phone, Location, Resume, LinkedIn, GitHub, Skills), ALWAYS use "type" to populate them using the User Profile data provided above!
+   - CRITICAL: If an input element ALREADY has its 'value' property filled with the correct value (e.g. element.value is not empty and matches profile or is already complete), DO NOT type into it again! SKIP IT and move to the next empty required field or click Next/Submit!
+   - NEVER use "ask_user" for any field that is ALREADY present in the User Profile (e.g. if the user profile has Name, Email, Phone, Location, Resume, DO NOT ask the user for them!).
+   - ONLY issue "ask_user" for fields genuinely missing from the User Profile AND required to complete the application (e.g. years of experience, or specific job-related questions).
 
-4. Security and Human-in-the-Loop:
+4. Job Discovery & Selection Gate (CRITICAL WORKFLOW REQUIREMENT):
+   - When on a job listing or search results page showing multiple jobs:
+     DO NOT immediately choose a job and click apply!
+     If search keywords need to be entered, type into the search input and click search.
+     Once job results are visible on the page, if the user has not explicitly chosen one in their command or answer, issue an "ask_user" action presenting the discovered jobs:
+     e.g. "I found matching jobs: 1. [Title] at [Company] ... Which job would you like to select?"
+
+5. Application Confirmation Gate (CRITICAL WORKFLOW REQUIREMENT):
+   - When viewing a job detail page (e.g. with job description and an "Apply" / "Apply Now" button):
+     DO NOT immediately click "Apply" without explicit user confirmation!
+     If the user hasn't explicitly confirmed applying to this specific job in prior answers or commands, issue an "ask_user" action:
+     "You selected [Job Title] at [Company]. Would you like me to apply for this job?"
+     Only proceed to click "Apply" after the user answers with confirmation ("yes", "apply", "please apply", etc.).
+
+6. Consequential Action & Final Submission Safety:
+   - Before clicking "Submit Application", verify that required fields are filled.
+   - Ask for confirmation if final submission confirmation is needed: "The application is ready to submit. Shall I submit it now?"
+
+7. Security and Human-in-the-Loop:
    - Do NOT attempt to solve or bypass CAPTCHAs, two-factor authentication (2FA), login challenges, or other security verification mechanisms.
    - If any security barrier or CAPTCHA is encountered, use the "ask_user" action to request user assistance.
 
-5. Multi-Step Progression:
+8. Multi-Step Progression:
    - Review prior executed steps to avoid repeating the exact same action in a loop.
    - If user provided an answer in response to a question, use that answer to fill the relevant form field or proceed with the application.
 
-6. Completion:
+9. Completion:
    - If the user command has already been fully satisfied or the workflow is finished, return { "action": "done" }.
 
-7. Format:
+10. Format:
    - Return ONLY the structured AgentAction JSON object. No explanations, no markdown wrapper, and no JavaScript.`;
 }
 
@@ -241,10 +270,12 @@ export function determineTaskStatus(
 export async function startAgentTask(
   userId: string,
   command: string,
-  pageContext: PageContext
+  pageContext: PageContext,
+  providedProfile?: UserProfile
 ): Promise<{ task: AgentTask; action: AgentAction }> {
   // Retrieve profile for authenticated user
-  const profile = await getStoredUserProfile(userId);
+  const dbProfile = await getStoredUserProfile(userId);
+  const profile = dbProfile || providedProfile;
 
   const prompt = buildAgentPrompt(command, pageContext, profile || undefined);
   const action = await generateAgentAction(prompt);
@@ -301,7 +332,8 @@ export const createAgentTask = startAgentTask;
 export async function continueAgentTask(
   param1: string,
   param2: string,
-  pageContext: PageContext
+  pageContext: PageContext,
+  providedProfile?: UserProfile
 ): Promise<{ task: AgentTask; action: AgentAction }> {
   // Support either (taskId, userId, pageContext) or (userId, taskId, pageContext)
   let task = await db
@@ -356,7 +388,8 @@ export async function continueAgentTask(
     throw new TaskStateError(`Task in status "${task.status}" cannot continue.`);
   }
 
-  const profile = await getStoredUserProfile(effectiveUserId);
+  const dbProfile = await getStoredUserProfile(effectiveUserId);
+  const profile = dbProfile || providedProfile;
   const prompt = buildAgentPrompt(
     task.command,
     pageContext,
@@ -414,7 +447,8 @@ export async function continueAgentTask(
 export async function respondToAgentTask(
   param1: string,
   param2: string,
-  answer: string
+  answer: string,
+  providedProfile?: UserProfile
 ): Promise<{ task: AgentTask; action: AgentAction }> {
   if (!answer || typeof answer !== "string" || !answer.trim()) {
     throw new Error("Missing or empty required field: answer");
@@ -486,7 +520,8 @@ export async function respondToAgentTask(
   const effectivePageContext: PageContext =
     task.lastPageContext || fallbackPageContext;
 
-  const profile = await getStoredUserProfile(effectiveUserId);
+  const dbProfile = await getStoredUserProfile(effectiveUserId);
+  const profile = dbProfile || providedProfile;
   const prompt = buildAgentPrompt(
     task.command,
     effectivePageContext,

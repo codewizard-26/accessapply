@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "AccessApply Web Automation",
+  "name": "AccessApply",
   "version": "1.0.0",
-  "description": "Reads job pages into structured, screen-reader-friendly context and performs user-approved, validated browser actions.",
+  "description": "Accessible job application assistant and automation agent.",
   "minimum_chrome_version": "116",
-  "permissions": ["storage", "activeTab", "scripting", "tabs"],
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "cookies"],
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*"
@@ -24,7 +24,12 @@
       "all_frames": false
     }
   ],
-  "web_accessible_resources": [],
+  "web_accessible_resources": [
+    {
+      "resources": ["profile-ui/*", "accessibility-ui/*", "shared/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

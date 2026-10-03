@@ -244,10 +244,23 @@ export type ActionResult = ActionSuccessResult | ActionFailureResult;
 // Extension messaging (popup <-> background <-> content)
 // ---------------------------------------------------------------------------
 
+export interface OverlayState {
+  visible: boolean;
+  statusText?: string;
+  discoveredJobs?: JobSummaryItem[];
+  selectedJob?: JobSummaryItem;
+  pendingConfirmation?: PendingConfirmation;
+  pendingQuestion?: string;
+  voiceState?: string;
+  voiceStatus?: string;
+  completed?: boolean;
+}
+
 export type ToContentMessage =
   | { type: "SCAN_PAGE"; tabId?: number }
   | { type: "EXECUTE_ACTION"; action: AgentAction }
-  | { type: "GET_STATE" };
+  | { type: "GET_STATE" }
+  | { type: "UPDATE_OVERLAY"; state: OverlayState };
 
 export interface ContentScanResponse {
   ok: boolean;
@@ -259,6 +272,10 @@ export interface ContentActionResponse {
   ok: boolean;
   result?: ActionResult;
   error?: ActionError;
+}
+
+export interface ContentOverlayResponse {
+  ok: boolean;
 }
 
 export type ContentMessage = ToContentMessage;
@@ -311,6 +328,10 @@ export interface ExtensionSettings {
   autoSpeakSummaries: boolean;
   /** Extra host origins the extension may navigate to / read. */
   allowedOrigins: string[];
+  /** Mode of assistance: step-by-step guidance, interactive assistance, or autonomous execution. */
+  assistanceLevel?: "guide" | "assist" | "act";
+  /** Primary user interaction mode: voice recognition, accessible on-screen keyboard, or normal mouse/keyboard. */
+  preferredInputMode?: "voice" | "virtual_keyboard" | "normal";
 }
 
 export interface AgentLogEntry {
@@ -322,16 +343,55 @@ export interface AgentLogEntry {
   data?: unknown;
 }
 
+export type AgentTaskStatus = "running" | "waiting_for_user" | "completed" | "failed";
+
+export interface AgentTask {
+  id: string;
+  userId: string;
+  command: string;
+  status: AgentTaskStatus;
+  currentUrl?: string | null;
+  lastAction?: AgentAction | null;
+  lastQuestion?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface JobSummaryItem {
+  id: string;
+  title: string;
+  company?: string;
+  location?: string;
+  salary?: string;
+  employmentType?: string;
+  targetId?: string;
+  url?: string;
+}
+
+export interface PendingConfirmation {
+  type: "apply" | "submit";
+  job?: JobSummaryItem;
+  message: string;
+  targetAction?: AgentAction;
+}
+
 export interface AgentLoopState {
   running: boolean;
   iteration: number;
   maxIterations: number;
+  taskId?: string;
+  command?: string;
+  pendingQuestion?: string;
+  status?: AgentTaskStatus;
   startedAt?: number;
   lastAction?: AgentAction;
   lastResult?: ActionResult;
   lastError?: ActionError;
   consecutiveFailures: number;
   stoppedReason?: string;
+  discoveredJobs?: JobSummaryItem[];
+  selectedJob?: JobSummaryItem;
+  pendingConfirmation?: PendingConfirmation;
 }
 
 export interface RuntimeSnapshot {
@@ -343,6 +403,11 @@ export interface RuntimeSnapshot {
   contentScriptReady: boolean;
   tabId?: number;
   tabUrl?: string;
+  auth?: {
+    authenticated: boolean;
+    user?: { id: string; email: string };
+  };
+  profile?: Record<string, unknown>;
 }
 
 export interface PopupResponse<T = unknown> {
@@ -358,11 +423,22 @@ export interface PopupResponse<T = unknown> {
 export type PopupRequest =
   | { id: string; type: "GET_SNAPSHOT" }
   | { id: string; type: "SCAN_ACTIVE_TAB" }
+  | { id: string; type: "START_TASK"; command?: string; userProfile?: Record<string, unknown> }
+  | { id: string; type: "RESPOND_TO_TASK"; answer: string }
   | { id: string; type: "RUN_MOCK_ACTION"; action: AgentAction }
   | { id: string; type: "SAVE_SETTINGS"; settings: Partial<ExtensionSettings> }
   | { id: string; type: "START_LOOP" }
   | { id: string; type: "STOP_LOOP" }
-  | { id: string; type: "CLEAR_LOGS" };
+  | { id: string; type: "CLEAR_LOGS" }
+  | { id: string; type: "CHECK_AUTH" }
+  | { id: string; type: "LOGIN"; email: string; password: string }
+  | { id: string; type: "REGISTER"; email: string; password: string }
+  | { id: string; type: "LOGOUT" }
+  | { id: string; type: "GET_PROFILE" }
+  | { id: string; type: "SAVE_PROFILE"; profile: Record<string, unknown> }
+  | { id: string; type: "SELECT_JOB"; job: JobSummaryItem }
+  | { id: string; type: "CONFIRM_APPLICATION" }
+  | { id: string; type: "CANCEL_APPLICATION" };
 
 /** Summary form of a scan, cheap enough to render in the popup. */
 export interface PageSummary {

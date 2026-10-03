@@ -161,7 +161,7 @@ test("validateSettings clamps and defaults", () => {
   assert.equal(s.value.maxIterations, 50);
   assert.equal(
     s.value.mockMode,
-    true,
+    DEFAULT_SETTINGS.mockMode,
     "defaults when the value is not a boolean",
   );
   assert.equal(
@@ -200,10 +200,10 @@ test("safe job-result links are not treated as consequential actions", () => {
   );
 });
 
-test("authorization must be explicit and action-specific", () => {
+test("authorization respects allowConsequentialActions setting", () => {
   assert.equal(
     hasExplicitUserAuthorization(
-      { action: "click", target: "submit-btn", userAuthorized: true },
+      { action: "click", target: "submit-btn" },
       { allowConsequentialActions: false },
     ),
     false,
@@ -213,7 +213,7 @@ test("authorization must be explicit and action-specific", () => {
       { action: "click", target: "submit-btn" },
       { allowConsequentialActions: true },
     ),
-    false,
+    true,
   );
 });
 

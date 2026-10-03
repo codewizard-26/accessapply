@@ -33,6 +33,47 @@ function requireString(value, label) {
   }
 }
 
+async function fetchBackendProfile() {
+  if (typeof globalThis.fetch !== 'function' || typeof globalThis.window === 'undefined') return null
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 1200)
+    const response = await fetch('http://localhost:3000/api/profile', {
+      method: 'GET',
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.profile) {
+        return data.profile
+      }
+    }
+  } catch {
+    // Backend unreachable; continue with local storage
+  }
+  return null
+}
+
+async function saveBackendProfile(profile) {
+  if (typeof globalThis.fetch !== 'function' || typeof globalThis.window === 'undefined') return
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 2000)
+    await fetch('http://localhost:3000/api/profile', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+  } catch {
+    // Non-blocking sync
+  }
+}
+
 function normalizeProfile(value) {
   if (!isRecord(value)) {
     throw new ProfileValidationError('The saved profile has an invalid format.')
@@ -41,8 +82,8 @@ function normalizeProfile(value) {
   const profile = value
   requireString(profile.name, 'Name')
   requireString(profile.email, 'Email')
-  requireString(profile.phone, 'Phone')
-  requireString(profile.location, 'Location')
+  if (profile.phone !== undefined) requireString(profile.phone, 'Phone')
+  if (profile.location !== undefined) requireString(profile.location, 'Location')
   if (!profile.name.trim()) {
     throw new ProfileValidationError('Enter your name before saving.')
   }
@@ -60,11 +101,14 @@ function normalizeProfile(value) {
     if (!isRecord(education)) {
       throw new ProfileValidationError('The saved education data has an invalid format.')
     }
-    requireString(education.id, 'Education ID')
+    if (education.id !== undefined) requireString(education.id, 'Education ID')
     requireString(education.institution, 'Institution')
     requireString(education.degree, 'Degree')
-    requireString(education.field, 'Field of study')
-    if (typeof education.startYear !== 'number' || (education.endYear !== undefined && typeof education.endYear !== 'number')) {
+    if (education.field !== undefined) requireString(education.field, 'Field of study')
+    if (education.startYear !== undefined && typeof education.startYear !== 'number') {
+      throw new ProfileValidationError('The saved education dates have an invalid format.')
+    }
+    if (education.endYear !== undefined && typeof education.endYear !== 'number') {
       throw new ProfileValidationError('The saved education dates have an invalid format.')
     }
   }
@@ -72,55 +116,68 @@ function normalizeProfile(value) {
     if (!isRecord(experience)) {
       throw new ProfileValidationError('The saved experience data has an invalid format.')
     }
-    for (const key of ['id', 'company', 'role', 'description', 'startDate']) {
+    for (const key of ['company', 'role']) {
       requireString(experience[key], `Experience ${key}`)
     }
-    if (experience.endDate !== undefined) {
-      requireString(experience.endDate, 'Experience end date')
-    }
+    if (experience.id !== undefined) requireString(experience.id, 'Experience ID')
+    if (experience.description !== undefined) requireString(experience.description, 'Experience description')
+    if (experience.startDate !== undefined) requireString(experience.startDate, 'Experience start date')
+    if (experience.endDate !== undefined) requireString(experience.endDate, 'Experience end date')
   }
 
-  for (const key of ['resume', 'github', 'linkedin']) {
+  for (const key of ['resume', 'github', 'linkedin', 'resumeUrl', 'githubUrl', 'linkedinUrl']) {
     if (profile[key] !== undefined) {
       requireString(profile[key], key)
     }
   }
 
-  const preferences = profile.accessibilityPreferences
-  if (!isRecord(preferences) || ['highContrast', 'reducedMotion', 'largeText'].some((key) => typeof preferences[key] !== 'boolean')) {
+  const rawPreferences = profile.accessibilityPreferences || profile.accessibility || {}
+  if (!isRecord(rawPreferences) || ['highContrast', 'reducedMotion', 'largeText'].some((key) => rawPreferences[key] !== undefined && typeof rawPreferences[key] !== 'boolean')) {
     throw new ProfileValidationError('The saved accessibility preferences have an invalid format.')
+  }
+
+  const resume = profile.resume || profile.resumeUrl
+  const github = profile.github || profile.githubUrl
+  const linkedin = profile.linkedin || profile.linkedinUrl
+
+  const unifiedPreferences = {
+    highContrast: Boolean(rawPreferences.highContrast),
+    reducedMotion: Boolean(rawPreferences.reducedMotion),
+    largeText: Boolean(rawPreferences.largeText),
+    voiceEnabled: typeof rawPreferences.voiceEnabled === 'boolean' ? rawPreferences.voiceEnabled : true,
+    textToSpeechEnabled: typeof rawPreferences.textToSpeechEnabled === 'boolean' ? rawPreferences.textToSpeechEnabled : true,
+    simplifiedText: typeof rawPreferences.simplifiedText === 'boolean' ? rawPreferences.simplifiedText : false,
+    keyboardNavigation: typeof rawPreferences.keyboardNavigation === 'boolean' ? rawPreferences.keyboardNavigation : false,
+    assistanceLevel: rawPreferences.assistanceLevel || 'assist',
   }
 
   return {
     name: profile.name.trim(),
     email: profile.email.trim(),
-    phone: profile.phone,
-    location: profile.location,
+    phone: profile.phone ?? '',
+    location: profile.location ?? '',
     skills: [...profile.skills],
-    education: profile.education.map((education) => ({
-      id: education.id,
+    education: profile.education.map((education, index) => ({
+      id: education.id || `edu-${index + 1}`,
       institution: education.institution,
       degree: education.degree,
-      field: education.field,
-      startYear: education.startYear,
+      field: education.field ?? '',
+      startYear: education.startYear ?? new Date().getFullYear(),
       ...(education.endYear !== undefined ? { endYear: education.endYear } : {}),
     })),
-    experience: profile.experience.map((experience) => ({
-      id: experience.id,
+    experience: profile.experience.map((experience, index) => ({
+      id: experience.id || `exp-${index + 1}`,
       company: experience.company,
       role: experience.role,
-      description: experience.description,
-      startDate: experience.startDate,
+      description: experience.description ?? '',
+      startDate: experience.startDate ?? '',
       ...(experience.endDate !== undefined ? { endDate: experience.endDate } : {}),
     })),
-    ...(profile.resume !== undefined ? { resume: profile.resume } : {}),
-    ...(profile.github !== undefined ? { github: profile.github } : {}),
-    ...(profile.linkedin !== undefined ? { linkedin: profile.linkedin } : {}),
-    accessibilityPreferences: {
-      highContrast: preferences.highContrast,
-      reducedMotion: preferences.reducedMotion,
-      largeText: preferences.largeText,
-    },
+    ...(resume ? { resume, resumeUrl: resume } : {}),
+    ...(github ? { github, githubUrl: github } : {}),
+    ...(linkedin ? { linkedin, linkedinUrl: linkedin } : {}),
+    accessibility: unifiedPreferences,
+    accessibilityPreferences: unifiedPreferences,
   }
 }
 
@@ -146,8 +203,16 @@ async function readProfileState() {
   const chromeApi = getChromeApi()
   try {
     const result = await chromeApi.storage.local.get(PROFILE_STORAGE_KEY)
-    const state = result[PROFILE_STORAGE_KEY]
-    return state === undefined ? null : normalizeProfileState(state)
+    let state = result[PROFILE_STORAGE_KEY]
+    if (state === undefined) {
+      const backendProfile = await fetchBackendProfile()
+      if (backendProfile) {
+        state = await saveProfile(backendProfile)
+        return state
+      }
+      return null
+    }
+    return normalizeProfileState(state)
   } catch (error) {
     if (error instanceof ProfileStorageError || error instanceof ProfileValidationError) {
       throw error
@@ -187,10 +252,13 @@ export async function saveProfile(profile) {
   const chromeApi = getChromeApi()
   try {
     await chromeApi.storage.local.set({ [PROFILE_STORAGE_KEY]: state })
-    return state
   } catch (error) {
     throw new ProfileStorageError('Could not save your profile. Your changes have not been saved.', { cause: error })
   }
+
+  void saveBackendProfile(normalizedProfile)
+
+  return state
 }
 
 export async function updateProfile(updates) {

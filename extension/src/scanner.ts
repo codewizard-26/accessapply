@@ -284,7 +284,8 @@ function describeElement(el: HTMLElement, index: number): PageElement | null {
 
   const role = resolveRole(el);
   const type = typeFor(el, role);
-  const id = `el_${index}`;
+  const rawId = el.getAttribute("id")?.trim();
+  const id = rawId || `el_${index}`;
   const accessible = accessibleName(el);
   const text = clean(el.textContent);
 
@@ -712,6 +713,12 @@ export function scanPage(): PageContext {
     seen.add(node);
 
     elementRegistry.set(described.id, node);
+    const rawId = node.getAttribute("id")?.trim();
+    if (rawId) {
+      elementRegistry.set(rawId, node);
+    }
+    const fallbackId = `el_${index}`;
+    elementRegistry.set(fallbackId, node);
     elements.push(described);
   }
 
@@ -749,10 +756,8 @@ function findIdFor(el: HTMLElement): string {
  * Returns undefined when the id is unknown or the node has been detached.
  */
 export function resolveElement(id: string): HTMLElement | undefined {
-  const el = elementRegistry.get(id);
-  if (!el) return undefined;
-  if (!el.isConnected) return undefined;
-  return el;
+  const check = revalidateElement(id);
+  return check.ok ? check.element : undefined;
 }
 
 /** Re-check that an element is still a valid target for an action. */
@@ -761,7 +766,41 @@ export function revalidateElement(
 ):
   | { ok: true; element: HTMLElement }
   | { ok: false; reason: "unknown" | "detached" } {
-  const element = elementRegistry.get(id);
+  let element = elementRegistry.get(id);
+
+  // Fallback 1: Direct DOM lookup by element ID
+  if (!element) {
+    const byId = document.getElementById(id);
+    if (byId && byId.isConnected) {
+      element = byId;
+      elementRegistry.set(id, byId);
+    }
+  }
+
+  // Fallback 2: Direct DOM lookup by name attribute
+  if (!element) {
+    try {
+      const byName = document.querySelector(`[name="${id.replace(/"/g, '\\"')}"]`);
+      if (byName instanceof HTMLElement && byName.isConnected) {
+        element = byName;
+        elementRegistry.set(id, byName);
+      }
+    } catch {
+      /* ignore invalid selector */
+    }
+  }
+
+  // Fallback 3: Case-insensitive key match in registry
+  if (!element) {
+    const trimmed = id.trim().toLowerCase();
+    for (const [key, node] of elementRegistry) {
+      if (key.toLowerCase() === trimmed && node.isConnected) {
+        element = node;
+        break;
+      }
+    }
+  }
+
   if (!element) return { ok: false, reason: "unknown" };
   if (!element.isConnected) return { ok: false, reason: "detached" };
   return { ok: true, element };

@@ -16,6 +16,29 @@ export function useAgent(agentService: AgentService = mockAgentService) {
     setStatus('processing')
     setResponse(null)
 
+    const chromeApi = (globalThis as unknown as { chrome?: { runtime?: { sendMessage?: (msg: unknown, cb?: (res: any) => void) => void } } }).chrome
+    if (chromeApi?.runtime?.sendMessage) {
+      try {
+        const bgRes = await new Promise<any>((resolve) => {
+          chromeApi.runtime!.sendMessage!(
+            { type: 'START_TASK', command: request.command.trim() },
+            (res: any) => resolve(res),
+          )
+        })
+        if (bgRes && bgRes.ok) {
+          const successResponse: AgentResponse = {
+            message: `Agent started: "${request.command.trim()}". AccessApply is now running on your active tab.`,
+            status: 'success',
+          }
+          setResponse(successResponse)
+          setStatus('completed')
+          return successResponse
+        }
+      } catch {
+        // Fall back to agent service
+      }
+    }
+
     try {
       const nextResponse = await agentService.execute({ ...request, command: request.command.trim() })
       setResponse(nextResponse)

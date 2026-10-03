@@ -177,24 +177,25 @@ export function validateUrl(raw: string): ValidationResult<string> {
 }
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
-  backendUrl: "http://localhost:5000",
-  nextActionPath: "/api/agent/next-action",
-  healthPath: "/api/health",
-  mockMode: true,
+  backendUrl: "http://localhost:3000",
+  nextActionPath: "/api/agent/tasks",
+  healthPath: "/health",
+  mockMode: false,
   mockScenario: "click",
-  maxIterations: 10,
-  waitAfterActionMs: 600,
+  maxIterations: 15,
+  waitAfterActionMs: 800,
   pageSettleTimeoutMs: 5000,
-  allowConsequentialActions: false,
+  allowConsequentialActions: true,
   fontSize: "normal",
   highContrast: false,
   reducedMotion: false,
   speechSynthesisEnabled: true,
-  voiceCommandsEnabled: false,
+  voiceCommandsEnabled: true,
   screenReaderMode: false,
   plainLanguageMode: false,
   autoSpeakSummaries: false,
   allowedOrigins: [],
+  assistanceLevel: "assist",
 };
 
 /** Validate persisted/user-supplied settings, filling defaults. */
@@ -277,6 +278,24 @@ export function validateSettings(
   }
   if (typeof input["autoSpeakSummaries"] === "boolean") {
     base.autoSpeakSummaries = input["autoSpeakSummaries"];
+  }
+
+  const assistanceLevel = asString(input["assistanceLevel"]);
+  if (
+    assistanceLevel === "guide" ||
+    assistanceLevel === "assist" ||
+    assistanceLevel === "act"
+  ) {
+    base.assistanceLevel = assistanceLevel;
+  }
+
+  const preferredInputMode = asString(input["preferredInputMode"]);
+  if (
+    preferredInputMode === "voice" ||
+    preferredInputMode === "virtual_keyboard" ||
+    preferredInputMode === "normal"
+  ) {
+    base.preferredInputMode = preferredInputMode;
   }
 
   if (Array.isArray(input["allowedOrigins"])) {

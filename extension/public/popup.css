@@ -229,3 +229,598 @@ select:focus-visible {
   color: var(--muted);
   margin-right: 6px;
 }
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+#auth-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-panel {
+  background: rgba(27, 77, 216, 0.05);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.command-box textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  resize: vertical;
+}
+
+.voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(27, 77, 216, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(27, 77, 216, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(27, 77, 216, 0); }
+}
+
+.question-card {
+  background: rgba(255, 170, 0, 0.08);
+  border: 2px solid #ffaa00;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 14px;
+}
+
+.question-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #d97706;
+  margin-bottom: 6px;
+}
+
+.question-text {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0 10px;
+}
+
+.answer-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.answer-row input {
+  flex: 1;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(27, 77, 216, 0.1);
+  color: var(--accent);
+  margin: 4px 0;
+}
+
+.error-text {
+  color: var(--error);
+  margin-top: 6px;
+}
+
+/* Navigation Tabs */
+.popup-nav {
+  display: flex;
+  gap: 4px;
+  background: var(--line);
+  padding: 3px;
+  border-radius: 8px;
+  margin: 10px 0 14px;
+}
+
+.popup-nav .tab-btn {
+  flex: 1;
+  padding: 7px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.popup-nav .tab-btn:hover {
+  color: var(--fg);
+}
+
+.popup-nav .tab-btn.active {
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.tab-pane {
+  display: block;
+}
+
+.tab-pane[hidden] {
+  display: none !important;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Job discovery & card styles */
+.jobs-card {
+  background: rgba(27, 77, 216, 0.04);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 14px;
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.section-title-row h2 {
+  margin: 0;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.jobs-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.job-item {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 7px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  text-align: left;
+  width: 100%;
+  color: var(--fg);
+}
+
+.job-item:hover,
+.job-item:focus-visible {
+  border-color: var(--accent);
+  background: rgba(27, 77, 216, 0.08);
+  outline: none;
+}
+
+.job-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.job-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 3px;
+  color: var(--fg);
+}
+
+.job-item-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.job-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.job-item-salary {
+  font-weight: 600;
+  color: var(--success);
+}
+
+.job-select-btn {
+  font-size: 11px;
+  padding: 3px 9px;
+}
+
+/* Confirmation Gate Card */
+.confirmation-card {
+  background: rgba(23, 96, 58, 0.08);
+  border: 2px solid var(--success);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.confirm-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--success);
+  margin-bottom: 6px;
+}
+
+.confirm-job-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 2px 0 4px;
+}
+
+.confirm-job-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.confirm-prompt-text {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 6px 0 12px;
+}
+
+/* Voice state pill */
+.voice-state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+}
+
+.voice-state-pill.ready {
+  background: rgba(27, 77, 216, 0.1);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.voice-state-pill.listening {
+  background: rgba(23, 96, 58, 0.15);
+  color: var(--success);
+  border-color: var(--success);
+  animation: pulse 1.5s infinite;
+}
+
+.voice-state-pill.processing {
+  background: rgba(255, 170, 0, 0.15);
+  color: #d97706;
+  border-color: #d97706;
+}
+
+.voice-state-pill.off {
+  background: rgba(100, 100, 100, 0.1);
+  color: var(--muted);
+}
+
+.voice-state-pill.error {
+  background: rgba(179, 38, 30, 0.1);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* Connection indicator */
+.conn-pill {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.conn-pill.online {
+  background: rgba(23, 96, 58, 0.12);
+  color: var(--success);
+}
+
+.conn-pill.offline {
+  background: rgba(179, 38, 30, 0.12);
+  color: var(--error);
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  user-select: none;
+}
+
+/* ==========================================================================
+   First-Run Onboarding Modal (Requirement 1)
+   ========================================================================== */
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.onboarding-card {
+  background: var(--bg);
+  color: var(--fg);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  padding: 20px 18px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.onboarding-brand {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.onboarding-heading {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--fg);
+}
+
+.onboarding-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.onboarding-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboard-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, transform 0.15s;
+  min-height: 64px;
+}
+
+.onboard-card-btn:hover,
+.onboard-card-btn:focus-visible {
+  border-color: var(--accent);
+  background: rgba(27, 77, 216, 0.06);
+  outline: 2px solid var(--accent);
+  transform: translateY(-1px);
+}
+
+.onboard-icon {
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.onboard-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onboard-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.onboard-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.onboarding-footnote {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 14px 0 0;
+}
+
+/* ==========================================================================
+   Virtual Easy Keyboard (Requirement 6)
+   ========================================================================== */
+.virtual-keyboard-card {
+  background: rgba(27, 77, 216, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.vk-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.vk-label {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.vk-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.vk-row {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  width: 100%;
+}
+
+.vk-key {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+
+.vk-key:hover,
+.vk-key:focus-visible {
+  background: var(--line);
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+}
+
+.vk-key:active {
+  transform: scale(0.95);
+}
+
+.vk-space {
+  flex: 3;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.vk-backspace {
+  flex: 1.5;
+  background: rgba(179, 38, 30, 0.1);
+  color: var(--error);
+  border-color: rgba(179, 38, 30, 0.3);
+  font-size: 11px;
+}
+
+.vk-enter {
+  flex: 1.5;
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-size: 11px;
+}
+
+.vk-speak {
+  width: 100%;
+  height: 38px;
+  font-size: 13px;
+  background: rgba(27, 77, 216, 0.12);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ==========================================================================
+   Accessibility Settings Groups (Requirement 8)
+   ========================================================================== */
+.settings-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+  margin: 0;
+}
+
+.settings-legend {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+.radio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.radio-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+

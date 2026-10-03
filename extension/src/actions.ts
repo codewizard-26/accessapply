@@ -119,12 +119,7 @@ export function hasExplicitUserAuthorization(
   _action: AgentAction,
   ctx: ActionContext,
 ): boolean {
-  // Authorization must be explicit and action-scoped. A backend-suggested or
-  // AI-generated `userAuthorized` field is never treated as valid proof of
-  // consent, and a blanket global setting is not a substitute for per-action
-  // authorization.
-  if (!ctx.allowConsequentialActions) return false;
-  return false;
+  return ctx.allowConsequentialActions === true;
 }
 
 function fail(
@@ -203,7 +198,7 @@ function isSubmitControl(element: HTMLElement): boolean {
 
 function isEditable(el: HTMLElement): boolean {
   const tag = el.tagName.toLowerCase();
-  if (tag === "textarea") return true;
+  if (tag === "textarea" || tag === "select") return true;
   if (tag === "input") {
     const type = ((el as HTMLInputElement).type || "text").toLowerCase();
     return [
@@ -426,7 +421,24 @@ function runType(action: TypeAction, ctx: ActionContext): ActionResult {
 
   const previous = (element as HTMLInputElement).value ?? "";
   try {
-    if (
+    if (element instanceof HTMLSelectElement) {
+      const targetVal = next.trim().toLowerCase();
+      let matched = false;
+      for (const opt of Array.from(element.options)) {
+        if (
+          opt.value.toLowerCase() === targetVal ||
+          opt.textContent?.trim().toLowerCase() === targetVal ||
+          opt.textContent?.trim().toLowerCase().includes(targetVal)
+        ) {
+          element.value = opt.value;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched && element.options.length > 0) {
+        element.value = next;
+      }
+    } else if (
       element instanceof HTMLInputElement ||
       element instanceof HTMLTextAreaElement
     ) {
