@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "AccessApply",
+  "version": "1.0.0",
+  "description": "Accessible job application assistant and automation agent.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "cookies"],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "AccessApply",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["profile-ui/*", "accessibility-ui/*", "shared/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

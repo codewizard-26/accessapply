@@ -1,0 +1,61 @@
+:root {
+  color: var(--color-ink);
+  background: var(--color-page);
+  font: 1rem/1.5 var(--font-body);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 24rem;
+  min-height: 10rem;
+  margin: 0;
+}
+
+.launcher {
+  padding: 1.5rem;
+  background: var(--color-paper);
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: var(--color-teal);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font: 400 1.5rem/1.2 var(--font-heading);
+}
+
+#launcher-status,
+#launcher-error {
+  margin: 0.6rem 0 0;
+  color: var(--color-muted);
+}
+
+#launcher-error {
+  color: var(--color-error);
+}
+
+button {
+  min-height: 2.75rem;
+  margin-top: 1rem;
+  padding: 0.65rem 1rem;
+  border: 2px solid var(--color-teal);
+  border-radius: var(--radius-control);
+  color: var(--color-paper);
+  background: var(--color-teal);
+  font: 700 0.8rem/1.2 var(--font-body);
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}

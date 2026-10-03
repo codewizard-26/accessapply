@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "AccessApply",
+  "version": "1.0.0",
+  "description": "Accessible assistance for job applications.",
+  "minimum_chrome_version": "95",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "launcher/popup.html"
+  }
+}

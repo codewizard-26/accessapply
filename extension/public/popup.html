@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AccessApply</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <!-- First-Run Accessibility Onboarding Modal -->
+      <div id="onboarding-modal" class="onboarding-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-subtitle">
+        <div class="onboarding-card">
+          <div class="onboarding-brand">ACCESSAPPLY</div>
+          <h2 id="onboarding-title" class="onboarding-heading">How would you like to use AccessApply?</h2>
+          <p id="onboarding-subtitle" class="onboarding-sub">Choose your preferred interaction mode to get started.</p>
+
+          <div class="onboarding-options" role="radiogroup" aria-label="Interaction Mode Choices">
+            <!-- Option 1: Voice Commands -->
+            <button id="btn-onboard-voice" type="button" class="onboard-card-btn" data-mode="voice" aria-label="Voice Commands: Speak naturally and control AccessApply using your voice.">
+              <div class="onboard-icon" aria-hidden="true">🎤</div>
+              <div class="onboard-info">
+                <div class="onboard-title">Voice Commands</div>
+                <div class="onboard-desc">Speak naturally and control AccessApply using your voice.</div>
+              </div>
+            </button>
+
+            <!-- Option 2: Virtual Easy Keyboard -->
+            <button id="btn-onboard-vk" type="button" class="onboard-card-btn" data-mode="virtual_keyboard" aria-label="Virtual Easy Keyboard: Use large, simple controls for typing and navigation.">
+              <div class="onboard-icon" aria-hidden="true">⌨</div>
+              <div class="onboard-info">
+                <div class="onboard-title">Virtual Easy Keyboard</div>
+                <div class="onboard-desc">Use large, simple controls for typing and navigation.</div>
+              </div>
+            </button>
+
+            <!-- Option 3: Normal Controls -->
+            <button id="btn-onboard-normal" type="button" class="onboard-card-btn" data-mode="normal" aria-label="Normal Controls: Use standard mouse and keyboard controls.">
+              <div class="onboard-icon" aria-hidden="true">🖱</div>
+              <div class="onboard-info">
+                <div class="onboard-title">Normal Controls</div>
+                <div class="onboard-desc">Use standard mouse and keyboard controls.</div>
+              </div>
+            </button>
+          </div>
+
+          <p class="onboarding-footnote">You can change this later in Accessibility Settings.</p>
+        </div>
+      </div>
+
+      <header class="popup-header">
+        <div>
+          <h1 style="margin: 0; display: flex; align-items: center; gap: 6px;">
+            AccessApply
+            <span id="conn-status-pill" class="conn-pill online">● Connected</span>
+          </h1>
+        </div>
+        <div id="auth-status-bar">
+          <span id="auth-user-label" class="small muted">Checking session...</span>
+          <button id="btn-auth-toggle" type="button" class="secondary small">Sign In</button>
+        </div>
+      </header>
+
+      <!-- Top Navigation Tabs -->
+      <nav class="popup-nav" role="tablist" aria-label="AccessApply Views">
+        <button id="tab-btn-agent" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="tab-pane-agent">🤖 Agent</button>
+        <button id="tab-btn-access" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-pane-access">♿ Accessibility</button>
+        <button id="tab-btn-profile" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-pane-profile">👤 Profile</button>
+      </nav>
+
+      <!-- Auth Form Panel -->
+      <section id="auth-form-panel" class="auth-panel" hidden>
+        <div class="row" style="margin-top: 0; margin-bottom: 8px;">
+          <button id="auth-tab-login" type="button" class="secondary small" style="font-weight: 600;">Sign In</button>
+          <button id="auth-tab-register" type="button" class="secondary small" style="font-weight: 600;">Create Account</button>
+        </div>
+        <p id="auth-panel-hint" class="small muted">Enter your email and password to access your profile and tasks.</p>
+        <label for="auth-email">Email Address</label>
+        <input id="auth-email" type="email" placeholder="you@example.com" />
+        <label for="auth-password">Password</label>
+        <input id="auth-password" type="password" placeholder="••••••••" />
+        <div id="auth-confirm-wrap" hidden>
+          <label for="auth-password-confirm">Confirm Password</label>
+          <input id="auth-password-confirm" type="password" placeholder="••••••••" />
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <button id="btn-auth-submit" type="button" class="primary">Sign In</button>
+          <button id="btn-auth-cancel" type="button" class="secondary">Cancel</button>
+        </div>
+        <p id="auth-error" class="small error-text" hidden></p>
+      </section>
+
+      <!-- ================= TAB 1: AGENT ================= -->
+      <div id="tab-pane-agent" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-agent">
+        <!-- Agent Task Command Section -->
+        <section id="command-section" style="border-top: none; padding-top: 0; margin-top: 0;" aria-labelledby="command-heading">
+          <div class="section-title-row">
+            <h2 id="command-heading" style="margin: 0;">Task Command</h2>
+            <span id="voice-indicator" class="voice-state-pill ready" title="Speech recognition status">🎤 Voice Ready</span>
+          </div>
+          <div class="command-box" style="margin-top: 6px;">
+            <textarea
+              id="task-command"
+              rows="2"
+              placeholder="Find remote software engineering jobs"
+            >Find remote software engineering jobs</textarea>
+          </div>
+          <div class="row">
+            <button id="btn-start" type="button" class="primary">Start Task</button>
+            <button id="btn-voice-toggle" type="button" class="secondary voice-btn" title="Toggle voice input">🎤 Speak</button>
+            <button id="btn-stop" type="button" class="secondary" disabled>Stop</button>
+          </div>
+          <p id="voice-status" class="small muted" style="margin: 6px 0 0;">Speak or type your request above.</p>
+        </section>
+
+        <!-- Virtual Easy Keyboard Panel (Requirement 6) -->
+        <section id="virtual-keyboard-section" class="virtual-keyboard-card" hidden aria-label="Virtual Easy Keyboard">
+          <div class="vk-title-row">
+            <span class="vk-label">⌨ Virtual Easy Keyboard</span>
+            <span class="small muted">Target: <span id="vk-target-label">Task Command</span></span>
+          </div>
+          <div class="vk-grid" role="group" aria-label="Virtual Keyboard Keys">
+            <div class="vk-row letters-row-1">
+              <button type="button" class="vk-key" data-key="A">A</button>
+              <button type="button" class="vk-key" data-key="B">B</button>
+              <button type="button" class="vk-key" data-key="C">C</button>
+              <button type="button" class="vk-key" data-key="D">D</button>
+              <button type="button" class="vk-key" data-key="E">E</button>
+              <button type="button" class="vk-key" data-key="F">F</button>
+              <button type="button" class="vk-key" data-key="G">G</button>
+              <button type="button" class="vk-key" data-key="H">H</button>
+              <button type="button" class="vk-key" data-key="I">I</button>
+              <button type="button" class="vk-key" data-key="J">J</button>
+              <button type="button" class="vk-key" data-key="K">K</button>
+              <button type="button" class="vk-key" data-key="L">L</button>
+              <button type="button" class="vk-key" data-key="M">M</button>
+            </div>
+            <div class="vk-row letters-row-2">
+              <button type="button" class="vk-key" data-key="N">N</button>
+              <button type="button" class="vk-key" data-key="O">O</button>
+              <button type="button" class="vk-key" data-key="P">P</button>
+              <button type="button" class="vk-key" data-key="Q">Q</button>
+              <button type="button" class="vk-key" data-key="R">R</button>
+              <button type="button" class="vk-key" data-key="S">S</button>
+              <button type="button" class="vk-key" data-key="T">T</button>
+              <button type="button" class="vk-key" data-key="U">U</button>
+              <button type="button" class="vk-key" data-key="V">V</button>
+              <button type="button" class="vk-key" data-key="W">W</button>
+              <button type="button" class="vk-key" data-key="X">X</button>
+              <button type="button" class="vk-key" data-key="Y">Y</button>
+              <button type="button" class="vk-key" data-key="Z">Z</button>
+            </div>
+            <div class="vk-row numbers-row">
+              <button type="button" class="vk-key" data-key="1">1</button>
+              <button type="button" class="vk-key" data-key="2">2</button>
+              <button type="button" class="vk-key" data-key="3">3</button>
+              <button type="button" class="vk-key" data-key="4">4</button>
+              <button type="button" class="vk-key" data-key="5">5</button>
+              <button type="button" class="vk-key" data-key="6">6</button>
+              <button type="button" class="vk-key" data-key="7">7</button>
+              <button type="button" class="vk-key" data-key="8">8</button>
+              <button type="button" class="vk-key" data-key="9">9</button>
+              <button type="button" class="vk-key" data-key="0">0</button>
+            </div>
+            <div class="vk-row action-row">
+              <button type="button" class="vk-key vk-space" data-action="space" aria-label="Space">SPACE</button>
+              <button type="button" class="vk-key vk-backspace" data-action="backspace" aria-label="Backspace">BACKSPACE</button>
+              <button type="button" class="vk-key vk-enter" data-action="enter" aria-label="Enter or Send">ENTER</button>
+            </div>
+            <div class="vk-row speak-row">
+              <button type="button" class="vk-key vk-speak" data-action="speak" aria-label="Toggle speech input">🎤 SPEAK</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Status Card -->
+        <section aria-labelledby="status-heading" style="margin-top: 10px; padding-top: 10px;">
+          <div class="section-title-row">
+            <h2 id="status-heading" style="margin: 0;">Agent Status</h2>
+          </div>
+          <p id="loop-status" class="status-badge">Idle - ready.</p>
+          <p id="page-title" class="muted small" style="margin: 3px 0 0;">No page scanned yet.</p>
+          <p id="tab-url" class="muted small" style="margin: 1px 0 0; word-break: break-all;"></p>
+        </section>
+
+        <!-- Discovered Jobs Section (Discovery Mode) -->
+        <section id="jobs-section" class="jobs-card" hidden aria-labelledby="jobs-heading">
+          <div class="section-title-row">
+            <h2 id="jobs-heading" style="margin: 0; color: var(--accent);">Available Jobs Discovered</h2>
+            <span id="jobs-count-badge" class="badge">0 jobs</span>
+          </div>
+          <p class="small muted" style="margin: 4px 0 8px;">Select a job with mouse, press 1-9 on keyboard, or speak "Choose first one":</p>
+          <div id="jobs-list" class="jobs-list" role="list"></div>
+        </section>
+
+        <!-- Human Confirmation Gate Section -->
+        <section id="confirmation-section" class="confirmation-card" hidden aria-labelledby="confirm-heading">
+          <div class="confirm-badge">Human Confirmation Gate</div>
+          <h3 id="confirm-title" class="confirm-job-title">Job Title</h3>
+          <p id="confirm-company-details" class="confirm-job-meta">Company · Location · Salary</p>
+          <p id="confirm-prompt" class="confirm-prompt-text">Would you like me to apply for this job?</p>
+          <div class="row">
+            <button id="btn-confirm-yes" type="button" class="primary">Yes, Apply</button>
+            <button id="btn-confirm-no" type="button" class="secondary">Cancel</button>
+          </div>
+          <p class="small muted" style="margin-top: 6px;">You can also say "Yes, apply" or "Cancel".</p>
+        </section>
+
+        <!-- Human-In-The-Loop Ask-User Question Card -->
+        <section id="question-section" class="question-card" hidden aria-labelledby="question-badge-title">
+          <div id="question-badge-title" class="question-badge">Agent Needs Input</div>
+          <p id="agent-question-text" class="question-text">Waiting for user question...</p>
+          <div class="answer-box">
+            <label for="user-answer-input">Your Answer:</label>
+            <div class="answer-row">
+              <input
+                id="user-answer-input"
+                type="text"
+                placeholder="Type answer or speak..."
+              />
+              <button id="btn-voice-answer" type="button" class="secondary voice-btn" title="Speak your answer">🎤 Speak</button>
+            </div>
+          </div>
+          <div class="row">
+            <button id="btn-send-answer" type="button" class="primary">Send Answer</button>
+          </div>
+          <p id="answer-voice-status" class="small muted"></p>
+        </section>
+
+        <!-- Collapsible Activity & Execution Details -->
+        <section style="margin-top: 12px; padding-top: 8px;">
+          <details id="advanced-details">
+            <summary class="small muted">Advanced & Execution Activity</summary>
+            <div style="padding-top: 8px;">
+              <div class="row" style="margin-top: 0; justify-content: space-between;">
+                <button id="btn-scan" type="button" class="secondary small">Scan Page</button>
+                <button id="btn-clear" type="button" class="secondary small">Clear Logs</button>
+              </div>
+              <dl class="grid">
+                <dt>Interactive Elements</dt>
+                <dd id="element-count">-</dd>
+                <dt>Job Title (Detected)</dt>
+                <dd id="job-title">-</dd>
+                <dt>Backend Status</dt>
+                <dd id="health">-</dd>
+              </dl>
+              <ol id="log" aria-live="polite" aria-relevant="additions"></ol>
+            </div>
+          </details>
+        </section>
+      </div>
+
+      <!-- ================= TAB 2: ACCESSIBILITY ================= -->
+      <div id="tab-pane-access" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-access" hidden>
+        <section style="border-top: none; padding-top: 0; margin-top: 0;" aria-labelledby="access-settings-heading">
+          <h2 id="access-settings-heading" style="margin-bottom: 2px;">Accessibility Preferences</h2>
+          <p class="small muted" style="margin-top: 0; margin-bottom: 12px;">Fine-tune your communication, assistance, and interface controls.</p>
+
+          <!-- INTERACTION MODE (Requirement 8) -->
+          <fieldset class="settings-group">
+            <legend class="settings-legend">Interaction Mode</legend>
+            <div class="radio-stack">
+              <label class="radio-label">
+                <input type="radio" name="interaction-mode" id="mode-voice" value="voice" checked />
+                <span>🎤 Voice Commands</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="interaction-mode" id="mode-virtual-keyboard" value="virtual_keyboard" />
+                <span>⌨ Virtual Easy Keyboard</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="interaction-mode" id="mode-normal" value="normal" />
+                <span>🖱 Normal Controls</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- ASSISTANCE MODE (Requirement 8) -->
+          <fieldset class="settings-group" style="margin-top: 10px;">
+            <legend class="settings-legend">Assistance Mode</legend>
+            <div class="radio-stack">
+              <label class="radio-label">
+                <input type="radio" name="assistance-level-radio" id="assist-guide" value="guide" />
+                <span>Guide me — Confirms every action step-by-step</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="assistance-level-radio" id="assist-assist" value="assist" checked />
+                <span>Assist me — Helps navigate & confirms before applying</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="assistance-level-radio" id="assist-act" value="act" />
+                <span>Act for me — Automates permitted steps safely</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- Hidden select to keep existing backend & form compatibility -->
+          <select id="assistance-level" hidden>
+            <option value="guide">Guide me</option>
+            <option value="assist" selected>Assist me</option>
+            <option value="act">Act for me</option>
+          </select>
+
+          <!-- COMMUNICATION (Requirement 8) -->
+          <fieldset class="settings-group" style="margin-top: 10px;">
+            <legend class="settings-legend">Communication</legend>
+            <div class="stack">
+              <label class="check" for="simplified-language">
+                <input id="simplified-language" type="checkbox" />
+                Simplified plain language
+              </label>
+              <label class="check" for="speech-synthesis">
+                <input id="speech-synthesis" type="checkbox" checked />
+                Text-to-speech audio announcements
+              </label>
+              <label class="check" for="voice-commands" hidden>
+                <input id="voice-commands" type="checkbox" checked />
+                Voice recognition input enabled
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- NAVIGATION (Requirement 8) -->
+          <fieldset class="settings-group" style="margin-top: 10px;">
+            <legend class="settings-legend">Navigation</legend>
+            <div class="stack">
+              <label class="check" for="keyboard-nav">
+                <input id="keyboard-nav" type="checkbox" checked />
+                Keyboard-first navigation cues
+              </label>
+              <label class="check" for="high-contrast">
+                <input id="high-contrast" type="checkbox" />
+                High contrast theme
+              </label>
+              <label class="check" for="reduced-motion">
+                <input id="reduced-motion" type="checkbox" />
+                Reduced motion
+              </label>
+              <label class="check" for="consequential">
+                <input id="consequential" type="checkbox" checked />
+                Allow consequential actions (with user confirmation)
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- TEXT SIZE (Requirement 8) -->
+          <div style="margin-top: 10px;">
+            <label for="font-size" style="font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; color: var(--muted);">Text Size</label>
+            <select id="font-size" style="margin-top: 4px;">
+              <option value="normal" selected>Normal</option>
+              <option value="large">Large</option>
+              <option value="x-large">Extra large</option>
+            </select>
+          </div>
+
+          <div style="margin-top: 16px;">
+            <button id="btn-open-assistant" type="button" class="primary full-width">Launch Full Accessibility Studio ↗</button>
+          </div>
+        </section>
+
+        <!-- Advanced Engine Settings -->
+        <section aria-labelledby="engine-heading">
+          <details>
+            <summary id="engine-heading" style="cursor: pointer; font-weight: 600;">Connection & Advanced Engine</summary>
+            <div style="padding-top: 8px;">
+              <label for="backend-url">Backend URL</label>
+              <input id="backend-url" type="url" placeholder="http://localhost:3000" />
+
+              <div class="row">
+                <label for="max-iterations">Max iterations</label>
+                <input id="max-iterations" type="number" min="1" max="50" value="15" />
+              </div>
+
+              <div class="row">
+                <label class="check" for="mock-mode">
+                  <input id="mock-mode" type="checkbox" />
+                  Offline mock mode
+                </label>
+              </div>
+
+              <label for="mock-scenario">Mock scenario</label>
+              <select id="mock-scenario"></select>
+            </div>
+          </details>
+        </section>
+      </div>
+
+      <!-- ================= TAB 3: PROFILE ================= -->
+      <div id="tab-pane-profile" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-profile" hidden>
+        <section style="border-top: none; padding-top: 0; margin-top: 0;" aria-labelledby="profile-heading">
+          <div class="row" style="justify-content: space-between; align-items: center; margin-top: 0;">
+            <h2 id="profile-heading" style="margin-bottom: 0;">Application Profile</h2>
+            <button id="btn-refresh-profile" type="button" class="secondary small" title="Sync from account database">🔄 Sync</button>
+          </div>
+          <p class="small muted">Factual profile information used to autofill job applications accurately.</p>
+
+          <form id="quick-profile-form">
+            <label for="profile-name">Full Name *</label>
+            <input id="profile-name" type="text" placeholder="e.g. Yashwant Singh" required />
+
+            <label for="profile-email">Email Address *</label>
+            <input id="profile-email" type="email" placeholder="e.g. yashwant@gmail.com" required />
+
+            <label for="profile-phone">Phone Number</label>
+            <input id="profile-phone" type="tel" placeholder="e.g. +1 (555) 234-5678" />
+
+            <label for="profile-location">Current Location</label>
+            <input id="profile-location" type="text" placeholder="e.g. Bangalore, India (or Remote)" />
+
+            <label for="profile-skills">Key Skills (comma separated)</label>
+            <input id="profile-skills" type="text" placeholder="e.g. React, TypeScript, Node.js, Accessibility" />
+
+            <label for="profile-linkedin">LinkedIn URL</label>
+            <input id="profile-linkedin" type="url" placeholder="https://linkedin.com/in/username" />
+
+            <label for="profile-github">GitHub URL</label>
+            <input id="profile-github" type="url" placeholder="https://github.com/username" />
+
+            <label for="profile-resume">Resume / CV URL</label>
+            <input id="profile-resume" type="url" placeholder="https://example.com/resume.pdf" />
+
+            <div class="row" style="margin-top: 14px;">
+              <button id="btn-save-profile" type="button" class="primary">Save Profile</button>
+              <button id="btn-open-profile" type="button" class="secondary">Full Studio ↗</button>
+            </div>
+            <p id="profile-save-status" class="small muted" style="margin-top: 6px;"></p>
+          </form>
+        </section>
+      </div>
+
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
