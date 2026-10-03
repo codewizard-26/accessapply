@@ -1,16 +1,24 @@
 {
-  "name": "extension",
+  "name": "accessapply-extension",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "AccessApply Chrome Extension - web automation module (Manifest V3)",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run typecheck && node scripts/build.mjs",
+    "build:only": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test scripts/smoke-test.mjs",
+    "test:browser": "node scripts/verify-scanner.mjs",
+    "test:extension": "node scripts/verify-extension.mjs",
+    "clean": "node scripts/clean.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.24.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.6.0"
   }
 }

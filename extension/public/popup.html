@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AccessApply</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>AccessApply</h1>
+
+      <section aria-labelledby="status-heading">
+        <h2 id="status-heading">Status</h2>
+        <p id="page-title" class="muted">No page read yet.</p>
+        <p id="tab-url" class="muted small"></p>
+        <dl class="grid">
+          <dt>Elements</dt>
+          <dd id="element-count">-</dd>
+          <dt>Job</dt>
+          <dd id="job-title">-</dd>
+          <dt>Backend</dt>
+          <dd id="health">-</dd>
+        </dl>
+      </section>
+
+      <section aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Settings</h2>
+        <label for="backend-url">Backend URL</label>
+        <input
+          id="backend-url"
+          type="url"
+          placeholder="http://localhost:5000"
+        />
+
+        <label for="next-action-path">Next-action route</label>
+        <input
+          id="next-action-path"
+          type="text"
+          placeholder="/api/agent/next-action"
+        />
+
+        <label for="health-path">Health route</label>
+        <input id="health-path" type="text" placeholder="/api/health" />
+
+        <div class="row">
+          <label class="check" for="mock-mode">
+            <input id="mock-mode" type="checkbox" />
+            Mock mode (no backend needed)
+          </label>
+        </div>
+
+        <label for="mock-scenario">Mock scenario</label>
+        <select id="mock-scenario"></select>
+
+        <div class="row">
+          <label for="max-iterations">Max iterations</label>
+          <input id="max-iterations" type="number" min="1" max="50" />
+        </div>
+
+        <div class="row">
+          <label class="check" for="consequential">
+            <input id="consequential" type="checkbox" />
+            Allow consequential actions (submit / apply / accept terms)
+          </label>
+        </div>
+
+        <div class="row">
+          <label for="font-size">Text size</label>
+          <select id="font-size">
+            <option value="normal">Normal</option>
+            <option value="large">Large</option>
+            <option value="x-large">Extra large</option>
+          </select>
+        </div>
+
+        <div class="stack">
+          <label class="check" for="high-contrast">
+            <input id="high-contrast" type="checkbox" />
+            High contrast mode
+          </label>
+          <label class="check" for="reduced-motion">
+            <input id="reduced-motion" type="checkbox" />
+            Reduced motion
+          </label>
+          <label class="check" for="speech-synthesis">
+            <input id="speech-synthesis" type="checkbox" />
+            Speech synthesis
+          </label>
+          <label class="check" for="voice-commands">
+            <input id="voice-commands" type="checkbox" />
+            Voice commands
+          </label>
+          <label class="check" for="screen-reader-mode">
+            <input id="screen-reader-mode" type="checkbox" />
+            Screen reader mode
+          </label>
+          <label class="check" for="plain-language">
+            <input id="plain-language" type="checkbox" />
+            Plain-language mode
+          </label>
+          <label class="check" for="auto-speak">
+            <input id="auto-speak" type="checkbox" />
+            Auto-speak job summaries
+          </label>
+        </div>
+
+        <p class="hint small">
+          Leave consequential actions off unless you are personally supervising. Profile
+          information is never invented by the extension.
+        </p>
+      </section>
+
+      <section aria-labelledby="actions-heading">
+        <h2 id="actions-heading">Actions</h2>
+        <div class="row wrap">
+          <button id="btn-scan" type="button">Scan page</button>
+          <button id="btn-start" type="button">Start agent loop</button>
+          <button id="btn-stop" type="button" disabled>Stop</button>
+        </div>
+        <div class="row wrap">
+          <button id="btn-mock-click" type="button" class="secondary">
+            Mock click
+          </button>
+          <button id="btn-mock-type" type="button" class="secondary">
+            Mock type
+          </button>
+          <button id="btn-mock-scroll" type="button" class="secondary">
+            Mock scroll
+          </button>
+          <button id="btn-mock-read" type="button" class="secondary">
+            Mock read
+          </button>
+          <button id="btn-mock-invalid" type="button" class="secondary">
+            Mock failure
+          </button>
+        </div>
+        <p id="loop-status" class="muted small">Idle.</p>
+      </section>
+
+      <section aria-labelledby="log-heading">
+        <h2 id="log-heading">Log</h2>
+        <div class="row">
+          <button id="btn-clear" type="button" class="secondary">Clear</button>
+        </div>
+        <ol id="log" aria-live="polite" aria-relevant="additions"></ol>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
