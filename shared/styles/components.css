@@ -1,0 +1,162 @@
+:root {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+  background: var(--color-page);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.05;
+}
+
+h2 {
+  margin-bottom: 0.55rem;
+  font-size: 1.75rem;
+  line-height: 1.15;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 2px solid var(--color-teal);
+  border-radius: var(--radius-control);
+  font: 700 0.8rem/1.2 var(--font-body);
+}
+
+.primary-button {
+  color: var(--color-paper);
+  background: var(--color-teal);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--color-teal-dark);
+}
+
+.secondary-button {
+  color: var(--color-teal);
+  background: var(--color-paper);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: var(--color-soft-blue);
+}
+
+.ui-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-paper);
+  box-shadow: var(--shadow-card);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']),
+textarea,
+select {
+  width: 100%;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']),
+select {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+}
+
+textarea {
+  resize: vertical;
+  padding: 0.7rem 0.75rem;
+  line-height: 1.45;
+}
+
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--color-teal);
+}
+
+.field > span,
+.inline-form > label,
+.command-form > label,
+.mode-picker legend {
+  color: var(--color-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.form-error,
+.field-hint.error,
+.error-message {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

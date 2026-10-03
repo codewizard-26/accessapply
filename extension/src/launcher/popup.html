@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../shared/styles/design-tokens.css" />
+    <link rel="stylesheet" href="./launcher.css" />
+    <title>Opening AccessApply</title>
+  </head>
+  <body>
+    <main class="launcher" aria-labelledby="launcher-title">
+      <p class="eyebrow">AccessApply</p>
+      <h1 id="launcher-title">Opening your workspace</h1>
+      <p id="launcher-status" role="status" aria-live="polite">Checking your saved profile…</p>
+      <p id="launcher-error" role="alert" hidden></p>
+      <button id="retry" type="button" hidden>Try again</button>
+    </main>
+    <script type="module" src="./popup.mjs"></script>
+  </body>
+</html>

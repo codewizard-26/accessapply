@@ -8,6 +8,8 @@
     "build:only": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test scripts/smoke-test.mjs",
+    "test:launcher": "node --test tests/*.test.mjs",
+    "test:all": "node --test scripts/smoke-test.mjs && node --test tests/*.test.mjs",
     "test:browser": "node scripts/verify-scanner.mjs",
     "test:extension": "node scripts/verify-extension.mjs",
     "clean": "node scripts/clean.mjs"
