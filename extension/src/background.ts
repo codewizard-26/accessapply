@@ -13,6 +13,10 @@
  */
 
 import { checkHealth, requestNextAction } from "./backend.js";
+import {
+  buildSafeRecoveryAction,
+  createActionFailureKey,
+} from "./actions.js";
 import { validateAction, validateSettings, DEFAULT_SETTINGS } from "./validate.js";
 import type {
   ActionError,
@@ -37,6 +41,14 @@ const STATE_KEY = "accessapplyState";
 const MAX_LOG_ENTRIES = 300;
 const MAX_CONSECUTIVE_FAILURES = 3;
 
+interface ActionFailureRecord {
+  key: string;
+  code: ActionError["code"];
+  message: string;
+  count: number;
+  lastSeen: number;
+}
+
 interface PersistedState {
   loop: AgentLoopState;
   logs: AgentLogEntry[];
@@ -46,6 +58,7 @@ interface PersistedState {
   sessionId: string;
   seq: number;
   tabId?: number;
+  recentActionFailures: ActionFailureRecord[];
 }
 
 let inMemory: PersistedState | null = null;
@@ -68,6 +81,7 @@ function defaultState(): PersistedState {
     logs: [],
     sessionId: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
     seq: 0,
+    recentActionFailures: [],
   };
 }
 
@@ -75,7 +89,9 @@ async function loadState(): Promise<PersistedState> {
   if (inMemory) return inMemory;
   const stored = await chrome.storage.session.get(STATE_KEY);
   const value = stored[STATE_KEY] as PersistedState | undefined;
-  inMemory = value && typeof value === "object" && value.loop ? value : defaultState();
+  const base = value && typeof value === "object" && value.loop ? value : defaultState();
+  if (!Array.isArray(base.recentActionFailures)) base.recentActionFailures = [];
+  inMemory = base;
   return inMemory;
 }
 
@@ -242,6 +258,61 @@ function summarize(page: PageContext): PageSummary {
   };
 }
 
+function recordBlockedAction(
+  state: PersistedState,
+  action: AgentAction,
+  error: ActionError,
+): ActionFailureRecord | undefined {
+  if (error.code !== "REQUIRES_AUTHORIZATION") return undefined;
+  const key = createActionFailureKey(
+    {
+      action: action.action,
+      target:
+        action.action === "click" || action.action === "type"
+          ? action.target
+          : undefined,
+    },
+    error.code,
+  );
+  const existing = state.recentActionFailures.find((entry) => entry.key === key);
+  if (existing) {
+    existing.count += 1;
+    existing.message = error.message;
+    existing.lastSeen = Date.now();
+    return existing;
+  }
+  const record: ActionFailureRecord = {
+    key,
+    code: error.code,
+    message: error.message,
+    count: 1,
+    lastSeen: Date.now(),
+  };
+  state.recentActionFailures.push(record);
+  if (state.recentActionFailures.length > 20) {
+    state.recentActionFailures = state.recentActionFailures.slice(-20);
+  }
+  return record;
+}
+
+function shouldRecoverWithSafeRead(
+  state: PersistedState,
+  action: AgentAction,
+): boolean {
+  const key = createActionFailureKey(
+    {
+      action: action.action,
+      target:
+        action.action === "click" || action.action === "type"
+          ? action.target
+          : undefined,
+    },
+    "REQUIRES_AUTHORIZATION",
+  );
+  const record = state.recentActionFailures.find((entry) => entry.key === key);
+  return !!record && record.count >= 2;
+}
+
 async function buildSnapshot(): Promise<RuntimeSnapshot> {
   const [state, settings, tab] = await Promise.all([
     loadState(),
@@ -386,6 +457,32 @@ export async function runAgentLoop(): Promise<void> {
           break;
         }
 
+        if (shouldRecoverWithSafeRead(fresh, action)) {
+          const recovery = buildSafeRecoveryAction(action);
+          log(
+            "warn",
+            "Repeated action detected; selecting a safe alternative.",
+            {
+              blocked: describeAction(action),
+              recovery: describeAction(recovery),
+            },
+          );
+          fresh.loop.lastAction = recovery;
+          await saveState(fresh);
+          const recoveryResult = await executeInTab(activeTab, recovery);
+          fresh.loop.lastResult = recoveryResult;
+          fresh.loop.lastError = recoveryResult.ok ? undefined : recoveryResult.error;
+          fresh.loop.consecutiveFailures = 0;
+          await saveState(fresh);
+          if (recoveryResult.ok) {
+            log("success", "Recovery: reading job details instead.", recoveryResult.data);
+          } else {
+            log("warn", "User declined; action cancelled.", recoveryResult.error);
+          }
+          await wait(settings.waitAfterActionMs);
+          continue;
+        }
+
         // 5. EXECUTE -----------------------------------------------------
         const result = await executeInTab(activeTab, action);
         fresh.loop.lastResult = result;
@@ -394,6 +491,22 @@ export async function runAgentLoop(): Promise<void> {
           fresh.loop.consecutiveFailures = 0;
           fresh.loop.lastError = undefined;
         } else {
+          if (result.error.code === "REQUIRES_AUTHORIZATION") {
+            log(
+              "warn",
+              "Action blocked: explicit authorization required",
+              {
+                action: describeAction(action),
+                reason: result.error.message,
+              },
+            );
+            recordBlockedAction(fresh, action, result.error);
+            fresh.loop.consecutiveFailures = 0;
+            fresh.loop.lastError = result.error;
+            await saveState(fresh);
+            await wait(settings.waitAfterActionMs);
+            continue;
+          }
           log("error", `Action failed [${result.error.code}]: ${result.error.message}`, result.error);
           fresh.loop.consecutiveFailures += 1;
           fresh.loop.lastError = result.error;

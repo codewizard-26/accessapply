@@ -63,8 +63,49 @@
             Allow consequential actions (submit / apply / accept terms)
           </label>
         </div>
+
+        <div class="row">
+          <label for="font-size">Text size</label>
+          <select id="font-size">
+            <option value="normal">Normal</option>
+            <option value="large">Large</option>
+            <option value="x-large">Extra large</option>
+          </select>
+        </div>
+
+        <div class="stack">
+          <label class="check" for="high-contrast">
+            <input id="high-contrast" type="checkbox" />
+            High contrast mode
+          </label>
+          <label class="check" for="reduced-motion">
+            <input id="reduced-motion" type="checkbox" />
+            Reduced motion
+          </label>
+          <label class="check" for="speech-synthesis">
+            <input id="speech-synthesis" type="checkbox" />
+            Speech synthesis
+          </label>
+          <label class="check" for="voice-commands">
+            <input id="voice-commands" type="checkbox" />
+            Voice commands
+          </label>
+          <label class="check" for="screen-reader-mode">
+            <input id="screen-reader-mode" type="checkbox" />
+            Screen reader mode
+          </label>
+          <label class="check" for="plain-language">
+            <input id="plain-language" type="checkbox" />
+            Plain-language mode
+          </label>
+          <label class="check" for="auto-speak">
+            <input id="auto-speak" type="checkbox" />
+            Auto-speak job summaries
+          </label>
+        </div>
+
         <p class="hint small">
-          Leave this off unless you are personally supervising. Profile
+          Leave consequential actions off unless you are personally supervising. Profile
           information is never invented by the extension.
         </p>
       </section>

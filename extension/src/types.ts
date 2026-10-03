@@ -293,6 +293,22 @@ export interface ExtensionSettings {
   pageSettleTimeoutMs: number;
   /** Allow the extension to perform consequential actions after user approval. */
   allowConsequentialActions: boolean;
+  /** Text size selected in the popup. */
+  fontSize: "normal" | "large" | "x-large";
+  /** Apply a high-contrast visual theme to the popup and scanned page. */
+  highContrast: boolean;
+  /** Reduce animation and motion effects. */
+  reducedMotion: boolean;
+  /** Enable text-to-speech for status updates. */
+  speechSynthesisEnabled: boolean;
+  /** Enable voice command parsing. */
+  voiceCommandsEnabled: boolean;
+  /** Prefer screen-reader-friendly summaries and cues. */
+  screenReaderMode: boolean;
+  /** Show simplified plain-language summaries. */
+  plainLanguageMode: boolean;
+  /** Announce job summaries automatically. */
+  autoSpeakSummaries: boolean;
   /** Extra host origins the extension may navigate to / read. */
   allowedOrigins: string[];
 }

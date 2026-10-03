@@ -48,6 +48,14 @@ const dom = {
   mockScenario: el<HTMLSelectElement>("mock-scenario"),
   maxIterations: el<HTMLInputElement>("max-iterations"),
   consequential: el<HTMLInputElement>("consequential"),
+  fontSize: el<HTMLSelectElement>("font-size"),
+  highContrast: el<HTMLInputElement>("high-contrast"),
+  reducedMotion: el<HTMLInputElement>("reduced-motion"),
+  speechSynthesis: el<HTMLInputElement>("speech-synthesis"),
+  voiceCommands: el<HTMLInputElement>("voice-commands"),
+  screenReaderMode: el<HTMLInputElement>("screen-reader-mode"),
+  plainLanguage: el<HTMLInputElement>("plain-language"),
+  autoSpeak: el<HTMLInputElement>("auto-speak"),
   btnScan: el<HTMLButtonElement>("btn-scan"),
   btnStart: el<HTMLButtonElement>("btn-start"),
   btnStop: el<HTMLButtonElement>("btn-stop"),
@@ -68,6 +76,12 @@ for (const scenario of MOCK_SCENARIOS) {
   dom.mockScenario.append(option);
 }
 
+function applyAccessibilityStyles(settings: ExtensionSettings): void {
+  document.body.dataset["fontSize"] = settings.fontSize;
+  document.body.classList.toggle("high-contrast", settings.highContrast);
+  document.body.classList.toggle("reduced-motion", settings.reducedMotion);
+}
+
 function fillSettings(settings: ExtensionSettings): void {
   dom.backendUrl.value = settings.backendUrl;
   dom.nextActionPath.value = settings.nextActionPath;
@@ -76,6 +90,15 @@ function fillSettings(settings: ExtensionSettings): void {
   dom.mockScenario.value = settings.mockScenario;
   dom.maxIterations.value = String(settings.maxIterations);
   dom.consequential.checked = settings.allowConsequentialActions;
+  dom.fontSize.value = settings.fontSize;
+  dom.highContrast.checked = settings.highContrast;
+  dom.reducedMotion.checked = settings.reducedMotion;
+  dom.speechSynthesis.checked = settings.speechSynthesisEnabled;
+  dom.voiceCommands.checked = settings.voiceCommandsEnabled;
+  dom.screenReaderMode.checked = settings.screenReaderMode;
+  dom.plainLanguage.checked = settings.plainLanguageMode;
+  dom.autoSpeak.checked = settings.autoSpeakSummaries;
+  applyAccessibilityStyles(settings);
 }
 
 function collectSettings(): Partial<ExtensionSettings> {
@@ -87,6 +110,14 @@ function collectSettings(): Partial<ExtensionSettings> {
     mockScenario: dom.mockScenario.value,
     maxIterations: Number(dom.maxIterations.value) || 10,
     allowConsequentialActions: dom.consequential.checked,
+    fontSize: dom.fontSize.value as ExtensionSettings["fontSize"],
+    highContrast: dom.highContrast.checked,
+    reducedMotion: dom.reducedMotion.checked,
+    speechSynthesisEnabled: dom.speechSynthesis.checked,
+    voiceCommandsEnabled: dom.voiceCommands.checked,
+    screenReaderMode: dom.screenReaderMode.checked,
+    plainLanguageMode: dom.plainLanguage.checked,
+    autoSpeakSummaries: dom.autoSpeak.checked,
   };
 }
 
@@ -169,6 +200,14 @@ for (const input of [
   dom.mockScenario,
   dom.maxIterations,
   dom.consequential,
+  dom.fontSize,
+  dom.highContrast,
+  dom.reducedMotion,
+  dom.speechSynthesis,
+  dom.voiceCommands,
+  dom.screenReaderMode,
+  dom.plainLanguage,
+  dom.autoSpeak,
 ]) {
   input.addEventListener("change", async () => {
     const response = await send<ExtensionSettings>({
@@ -180,6 +219,7 @@ for (const input of [
         response.error?.message ?? "Could not save settings.";
       return;
     }
+    applyAccessibilityStyles(response.data ?? collectSettings() as ExtensionSettings);
     await refresh();
     await checkHealth();
   });

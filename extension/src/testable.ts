@@ -14,6 +14,12 @@ export {
   sanitizePageForWire,
   MOCK_SCENARIOS,
 } from "./backend.js";
+export {
+  classifyTargetRisk,
+  hasExplicitUserAuthorization,
+  buildSafeRecoveryAction,
+  createActionFailureKey,
+} from "./actions.js";
 export { detectWorkMode } from "./scanner.js";
 export type {
   AgentAction,

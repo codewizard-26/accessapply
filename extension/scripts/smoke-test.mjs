@@ -38,6 +38,10 @@ const {
   mockNextAction,
   MOCK_SCENARIOS,
   detectWorkMode,
+  classifyTargetRisk,
+  hasExplicitUserAuthorization,
+  buildSafeRecoveryAction,
+  createActionFailureKey,
 } = mod;
 
 const samplePage = {
@@ -144,6 +148,14 @@ test("validateSettings clamps and defaults", () => {
     maxIterations: 9999,
     mockMode: "yes",
     backendUrl: "http://localhost:5000/",
+    fontSize: "large",
+    highContrast: true,
+    reducedMotion: true,
+    speechSynthesisEnabled: false,
+    voiceCommandsEnabled: true,
+    screenReaderMode: true,
+    plainLanguageMode: true,
+    autoSpeakSummaries: true,
   });
   assert.equal(s.ok, true);
   assert.equal(s.value.maxIterations, 50);
@@ -157,8 +169,62 @@ test("validateSettings clamps and defaults", () => {
     "http://localhost:5000",
     "trailing slash trimmed",
   );
+  assert.equal(s.value.fontSize, "large");
+  assert.equal(s.value.highContrast, true);
+  assert.equal(s.value.reducedMotion, true);
+  assert.equal(s.value.speechSynthesisEnabled, false);
+  assert.equal(s.value.voiceCommandsEnabled, true);
+  assert.equal(s.value.screenReaderMode, true);
+  assert.equal(s.value.plainLanguageMode, true);
+  assert.equal(s.value.autoSpeakSummaries, true);
   assert.equal(s.value.nextActionPath, DEFAULT_SETTINGS.nextActionPath);
   assert.equal(validateSettings({ backendUrl: "javascript:x" }).ok, false);
+});
+
+test("safe job-result links are not treated as consequential actions", () => {
+  assert.equal(
+    classifyTargetRisk({
+      tag: "a",
+      href: "https://jobs.example.com/positions/123",
+      text: "Senior Product Manager at Example Inc",
+    }),
+    "safe",
+  );
+  assert.equal(
+    classifyTargetRisk({
+      tag: "button",
+      text: "Submit application",
+      role: "button",
+    }),
+    "consequential",
+  );
+});
+
+test("authorization must be explicit and action-specific", () => {
+  assert.equal(
+    hasExplicitUserAuthorization(
+      { action: "click", target: "submit-btn", userAuthorized: true },
+      { allowConsequentialActions: false },
+    ),
+    false,
+  );
+  assert.equal(
+    hasExplicitUserAuthorization(
+      { action: "click", target: "submit-btn" },
+      { allowConsequentialActions: true },
+    ),
+    false,
+  );
+});
+
+test("blocked actions are recovered with a safe fallback", () => {
+  const failedClick = { action: "click", target: "el_10" };
+  const repeated = createActionFailureKey(failedClick, "REQUIRES_AUTHORIZATION");
+  assert.equal(repeated, "click:el_10:REQUIRES_AUTHORIZATION");
+  assert.deepEqual(buildSafeRecoveryAction(failedClick), {
+    action: "read",
+    reason: "Recovery: reading job details instead.",
+  });
 });
 
 test("sanitizePageForWire strips sensitive values", () => {

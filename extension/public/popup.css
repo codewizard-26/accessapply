@@ -27,8 +27,8 @@
 
 body {
   margin: 0;
-  width: 400px;
-  max-height: 600px;
+  width: 420px;
+  max-height: 700px;
   overflow-y: auto;
   background: var(--bg);
   color: var(--fg);
@@ -37,6 +37,33 @@ body {
     -apple-system,
     "Segoe UI",
     sans-serif;
+}
+
+body[data-font-size="large"] {
+  font-size: 15px;
+}
+
+body[data-font-size="x-large"] {
+  font-size: 16px;
+}
+
+body.high-contrast {
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: #f1f5f9;
+  --line: #ffffff;
+  --accent: #ffd166;
+  --error: #ff7b7b;
+  --success: #7ef5a0;
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 main {
@@ -83,12 +110,13 @@ input[type="url"],
 input[type="number"],
 select {
   width: 100%;
-  padding: 6px 8px;
+  padding: 7px 9px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 7px;
   background: var(--bg);
   color: var(--fg);
   font: inherit;
+  min-height: 36px;
 }
 
 input[type="number"] {
@@ -100,6 +128,12 @@ input[type="number"] {
   gap: 8px;
   align-items: center;
   margin-top: 10px;
+}
+
+.stack {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
 }
 
 .row.wrap {

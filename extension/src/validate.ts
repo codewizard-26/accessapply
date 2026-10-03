@@ -186,6 +186,14 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   waitAfterActionMs: 600,
   pageSettleTimeoutMs: 5000,
   allowConsequentialActions: false,
+  fontSize: "normal",
+  highContrast: false,
+  reducedMotion: false,
+  speechSynthesisEnabled: true,
+  voiceCommandsEnabled: false,
+  screenReaderMode: false,
+  plainLanguageMode: false,
+  autoSpeakSummaries: false,
   allowedOrigins: [],
 };
 
@@ -242,6 +250,33 @@ export function validateSettings(
 
   if (typeof input["allowConsequentialActions"] === "boolean") {
     base.allowConsequentialActions = input["allowConsequentialActions"];
+  }
+
+  const fontSize = asString(input["fontSize"]);
+  if (fontSize === "normal" || fontSize === "large" || fontSize === "x-large") {
+    base.fontSize = fontSize;
+  }
+
+  if (typeof input["highContrast"] === "boolean") {
+    base.highContrast = input["highContrast"];
+  }
+  if (typeof input["reducedMotion"] === "boolean") {
+    base.reducedMotion = input["reducedMotion"];
+  }
+  if (typeof input["speechSynthesisEnabled"] === "boolean") {
+    base.speechSynthesisEnabled = input["speechSynthesisEnabled"];
+  }
+  if (typeof input["voiceCommandsEnabled"] === "boolean") {
+    base.voiceCommandsEnabled = input["voiceCommandsEnabled"];
+  }
+  if (typeof input["screenReaderMode"] === "boolean") {
+    base.screenReaderMode = input["screenReaderMode"];
+  }
+  if (typeof input["plainLanguageMode"] === "boolean") {
+    base.plainLanguageMode = input["plainLanguageMode"];
+  }
+  if (typeof input["autoSpeakSummaries"] === "boolean") {
+    base.autoSpeakSummaries = input["autoSpeakSummaries"];
   }
 
   if (Array.isArray(input["allowedOrigins"])) {

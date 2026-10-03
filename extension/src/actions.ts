@@ -25,6 +25,16 @@ import type {
 } from "./types.js";
 import { validateUrl } from "./validate.js";
 
+export interface ActionRiskDescriptor {
+  tag?: string;
+  role?: string;
+  text?: string;
+  ariaLabel?: string;
+  href?: string;
+  value?: string;
+  inputType?: string;
+}
+
 export interface ActionContext {
   /** Consequential actions (submit/apply/consent) require explicit approval. */
   allowConsequentialActions: boolean;
@@ -34,13 +44,88 @@ export const DEFAULT_ACTION_CONTEXT: ActionContext = {
   allowConsequentialActions: false,
 };
 
-/** Phrases that indicate an action would submit something or accept terms. */
-const CONSEQUENTIAL_PATTERN =
-  /\b(submit|apply|application|accept|agree|consent|sign ?up|register|confirm|authorize|authorize|purchase|pay|send|complete|finish|finalize|attest)\b/i;
+const LEGAL_CONSENT_PATTERN =
+  /\b(accept|agree|consent|declaration|terms?|policy|attest|acknowledge|authorize|confirm)\b/i;
 
-/** Phrases that indicate an action is harmless/read-only. */
-const SAFE_PATTERN =
+const SUBMISSION_PATTERN =
+  /\b(submit|application|apply(?: now)?|register|finalize|complete|send(?: in)?|finish)\b/i;
+
+const SAFE_NAVIGATION_PATTERN =
   /\b(cancel|close|dismiss|back|next|previous|continue|show|view|details|expand|read|search|filter|open|menu|more|less|skip|log ?in|sign ?in)\b/i;
+
+export function classifyTargetRisk(
+  description: ActionRiskDescriptor,
+): "safe" | "consequential" | "uncertain" {
+  const text = [
+    description.ariaLabel ?? "",
+    description.text ?? "",
+    description.value ?? "",
+    description.href ?? "",
+  ]
+    .join(" ")
+    .trim();
+
+  if (!text) return "safe";
+
+  const tag = (description.tag ?? "").toLowerCase();
+  const role = (description.role ?? "").toLowerCase();
+  const href = (description.href ?? "").toLowerCase();
+  const isLink = tag === "a" || role === "link";
+  const isSubmitButton =
+    tag === "button" ||
+    tag === "input" ||
+    role === "button" ||
+    description.inputType === "submit";
+
+  if (isLink) {
+    if (LEGAL_CONSENT_PATTERN.test(text)) return "consequential";
+    if (href.includes("/apply") || SUBMISSION_PATTERN.test(text)) {
+      return "uncertain";
+    }
+    return "safe";
+  }
+
+  if (LEGAL_CONSENT_PATTERN.test(text)) return "consequential";
+  if (isSubmitButton && SUBMISSION_PATTERN.test(text)) return "consequential";
+  if (isSubmitButton && SAFE_NAVIGATION_PATTERN.test(text)) return "safe";
+  if (SUBMISSION_PATTERN.test(text)) return "uncertain";
+  return "safe";
+}
+
+type ActionFailureKeySource = {
+  action: AgentAction["action"];
+  target?: string;
+};
+
+export function createActionFailureKey(
+  action: ActionFailureKeySource,
+  code: string,
+): string {
+  const target =
+    action.action === "click" || action.action === "type"
+      ? action.target ?? "unknown"
+      : "page";
+  return `${action.action}:${target}:${code}`;
+}
+
+export function buildSafeRecoveryAction(_action: AgentAction): AgentAction {
+  return {
+    action: "read",
+    reason: "Recovery: reading job details instead.",
+  };
+}
+
+export function hasExplicitUserAuthorization(
+  _action: AgentAction,
+  ctx: ActionContext,
+): boolean {
+  // Authorization must be explicit and action-scoped. A backend-suggested or
+  // AI-generated `userAuthorized` field is never treated as valid proof of
+  // consent, and a blanket global setting is not a substitute for per-action
+  // authorization.
+  if (!ctx.allowConsequentialActions) return false;
+  return false;
+}
 
 function fail(
   action: AgentAction["action"] | undefined,
@@ -78,20 +163,26 @@ function isDisabledNow(el: HTMLElement): boolean {
 }
 
 function isConsequential(element: HTMLElement): boolean {
-  const descriptor = [
-    element.getAttribute("aria-label") || "",
-    (element.textContent || "").slice(0, 300),
-    (element as HTMLInputElement).value || "",
-    element.getAttribute("name") || "",
-    element.getAttribute("id") || "",
-  ]
-    .join(" ")
-    .trim();
+  const descriptor = {
+    tag: element.tagName.toLowerCase(),
+    role: element.getAttribute("role") || undefined,
+    text: (element.textContent || "").slice(0, 300),
+    ariaLabel: element.getAttribute("aria-label") || undefined,
+    href:
+      element instanceof HTMLAnchorElement
+        ? element.href
+        : element.getAttribute("href") || undefined,
+    value: (element as HTMLInputElement).value || undefined,
+    inputType:
+      element instanceof HTMLInputElement
+        ? element.type || undefined
+        : element instanceof HTMLButtonElement
+          ? element.type || undefined
+          : undefined,
+  };
 
-  if (!descriptor) return false;
-  if (SAFE_PATTERN.test(descriptor) && !CONSEQUENTIAL_PATTERN.test(descriptor))
-    return false;
-  return CONSEQUENTIAL_PATTERN.test(descriptor);
+  const risk = classifyTargetRisk(descriptor);
+  return risk === "consequential" || risk === "uncertain";
 }
 
 /** Forms whose submission would be a real job application. */
@@ -232,9 +323,7 @@ function runClick(action: ClickAction, ctx: ActionContext): ActionResult {
     );
   }
 
-  if (
-    (ctx.allowConsequentialActions || action.userAuthorized === true) === false
-  ) {
+  if (!hasExplicitUserAuthorization(action, ctx)) {
     const consequential = isSubmitControl(element) || isConsequential(element);
     if (consequential) {
       return fail(
@@ -314,12 +403,12 @@ function runType(action: TypeAction, ctx: ActionContext): ActionResult {
 
   if (
     isConsequential(element) &&
-    !ctx.allowConsequentialActions &&
-    action.userAuthorized !== true
+    !hasExplicitUserAuthorization(action, ctx)
   ) {
-    // Only block fields that look like declarations/consents, not plain fields.
     if (
-      /consent|agree|terms|declaration|attest/i.test(describeTarget(element))
+      /consent|agree|terms|declaration|attest|acknowledge|policy/i.test(
+        describeTarget(element),
+      )
     ) {
       return fail(
         "type",
